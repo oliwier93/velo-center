@@ -51,9 +51,9 @@ public sealed class NavigationItemViewModel : ViewModelBase
 
     public bool IsCollapsed => !IsExpanded;
 
-    public string IconBackground => IsSelected ? "#523A1E68" : "#2617162E";
+    public string IconBackground => IsSelected ? "Transparent" : "#2216132A";
 
-    public string IconBorderBrush => IsSelected ? "#B46CFF" : "#4E8A61AF";
+    public string IconBorderBrush => "Transparent";
 
     public double SelectionOpacity => IsSelected ? 1 : 0;
 }

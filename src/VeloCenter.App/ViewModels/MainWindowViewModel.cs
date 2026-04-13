@@ -10,7 +10,8 @@ public sealed class MainWindowViewModel : ViewModelBase
     private readonly NavigationItemViewModel _overviewNavigationItem;
     private readonly NavigationItemViewModel _importNavigationItem;
 
-    private bool _isSidebarExpanded = true;
+    private bool _isSidebarExpanded;
+    private bool _isSidebarContentExpanded;
     private string _currentSectionTitle = string.Empty;
     private string _currentSectionDescription = string.Empty;
     private ViewModelBase _currentSectionViewModel = null!;
@@ -71,7 +72,6 @@ public sealed class MainWindowViewModel : ViewModelBase
             settingsNavigationItem,
         ];
 
-        ToggleSidebarCommand = new CommunityToolkit.Mvvm.Input.RelayCommand(ToggleSidebar);
         SelectSectionCommand = new CommunityToolkit.Mvvm.Input.RelayCommand<NavigationItemViewModel?>(SelectSection);
         ImportCommand = new CommunityToolkit.Mvvm.Input.RelayCommand(OpenImportWorkspace);
         SyncCommand = new CommunityToolkit.Mvvm.Input.RelayCommand(StartSyncPlaceholder);
@@ -92,17 +92,11 @@ public sealed class MainWindowViewModel : ViewModelBase
             "#F7E9FF");
     }
 
-    public string AppTitle { get; } = "velo-center";
+    public string AppTitle { get; } = "Velo Center";
 
     public string CurrentRangeLabel { get; } = "Zakres: 30 dni";
 
     public string DataModeLabel { get; } = "Tryb lokalny / probka";
-
-    public string SidebarFooterTitle => IsSidebarExpanded ? "Tryb lokalny" : "LCL";
-
-    public string SidebarFooterDescription => IsSidebarExpanded
-        ? "Shell pracuje na probce in-memory, dopoki nie podepniemy SQLite i importu plikow."
-        : string.Empty;
 
     public bool IsSidebarExpanded
     {
@@ -112,22 +106,26 @@ public sealed class MainWindowViewModel : ViewModelBase
             if (SetProperty(ref _isSidebarExpanded, value))
             {
                 OnPropertyChanged(nameof(SidebarWidth));
-                OnPropertyChanged(nameof(SidebarToggleIconPathData));
-                OnPropertyChanged(nameof(SidebarToggleTooltip));
-                OnPropertyChanged(nameof(SidebarFooterTitle));
-                OnPropertyChanged(nameof(SidebarFooterDescription));
+            }
+        }
+    }
+
+    public bool IsSidebarContentExpanded
+    {
+        get => _isSidebarContentExpanded;
+        private set
+        {
+            if (SetProperty(ref _isSidebarContentExpanded, value))
+            {
+                OnPropertyChanged(nameof(IsSidebarContentCollapsed));
                 ApplySidebarStateToNavigationItems();
             }
         }
     }
 
-    public double SidebarWidth => IsSidebarExpanded ? 264 : 92;
+    public bool IsSidebarContentCollapsed => !IsSidebarContentExpanded;
 
-    public string SidebarToggleIconPathData => IsSidebarExpanded
-        ? "M15.5,6 L9.5,12 L15.5,18"
-        : "M8.5,6 L14.5,12 L8.5,18";
-
-    public string SidebarToggleTooltip => IsSidebarExpanded ? "Zwin menu" : "Rozwin menu";
+    public double SidebarWidth => IsSidebarExpanded ? 264 : 80;
 
     public System.Collections.Generic.IReadOnlyList<NavigationItemViewModel> NavigationItems { get; }
 
@@ -185,8 +183,6 @@ public sealed class MainWindowViewModel : ViewModelBase
         private set => SetProperty(ref _statusBadgeForeground, value);
     }
 
-    public CommunityToolkit.Mvvm.Input.IRelayCommand ToggleSidebarCommand { get; }
-
     public CommunityToolkit.Mvvm.Input.IRelayCommand<NavigationItemViewModel?> SelectSectionCommand { get; }
 
     public CommunityToolkit.Mvvm.Input.IRelayCommand ImportCommand { get; }
@@ -195,16 +191,20 @@ public sealed class MainWindowViewModel : ViewModelBase
 
     public CommunityToolkit.Mvvm.Input.IRelayCommand RefreshCommand { get; }
 
-    private void ToggleSidebar()
+    public void SetSidebarHoverState(bool isHovered)
     {
-        IsSidebarExpanded = !IsSidebarExpanded;
+        _sidebarTransitionVersion++;
+        var version = _sidebarTransitionVersion;
 
-        UpdateStatus(
-            "Layout",
-            IsSidebarExpanded ? "Menu boczne zostalo rozwiniete." : "Menu boczne zostalo zwiniete.",
-            "Interfejs czeka na kolejne akcje.",
-            "#26183D",
-            "#CDB5FF");
+        if (isHovered)
+        {
+            IsSidebarContentExpanded = true;
+            IsSidebarExpanded = true;
+            return;
+        }
+
+        IsSidebarExpanded = false;
+        _ = CompleteSidebarCollapseAsync(version);
     }
 
     private void SelectSection(NavigationItemViewModel? item)
@@ -276,8 +276,22 @@ public sealed class MainWindowViewModel : ViewModelBase
     {
         foreach (var navigationItem in NavigationItems)
         {
-            navigationItem.IsExpanded = IsSidebarExpanded;
+            navigationItem.IsExpanded = IsSidebarContentExpanded;
         }
+    }
+
+    private int _sidebarTransitionVersion;
+
+    private async System.Threading.Tasks.Task CompleteSidebarCollapseAsync(int version)
+    {
+        await System.Threading.Tasks.Task.Delay(180);
+
+        if (version != _sidebarTransitionVersion || IsSidebarExpanded)
+        {
+            return;
+        }
+
+        IsSidebarContentExpanded = false;
     }
 
     private void UpdateStatus(

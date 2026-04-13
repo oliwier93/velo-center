@@ -1,0 +1,8 @@
+D:\Projekty\velo-center\.artifacts\verify-obj\VeloCenter.App.csproj.AssemblyReference.cache
+D:\Projekty\velo-center\.artifacts\verify-obj\Avalonia\Resources.Inputs.cache
+D:\Projekty\velo-center\.artifacts\verify-obj\Avalonia\resources
+D:\Projekty\velo-center\.artifacts\verify-obj\VeloCenter.App.GeneratedMSBuildEditorConfig.editorconfig
+D:\Projekty\velo-center\.artifacts\verify-obj\VeloCenter.App.AssemblyInfoInputs.cache
+D:\Projekty\velo-center\.artifacts\verify-obj\VeloCenter.App.AssemblyInfo.cs
+D:\Projekty\velo-center\.artifacts\verify-obj\VeloCenter.App.csproj.CoreCompileInputs.cache
+D:\Projekty\velo-center\.artifacts\verify-obj\VeloCenter.App.sourcelink.json
