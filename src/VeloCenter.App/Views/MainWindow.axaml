@@ -3,184 +3,372 @@
         xmlns:vm="using:VeloCenter.App.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="760"
+        mc:Ignorable="d"
         x:Class="VeloCenter.App.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
+        d:DesignWidth="1380"
+        d:DesignHeight="860"
+        Width="1380"
+        Height="860"
+        MinWidth="1040"
+        MinHeight="680"
+        Background="{DynamicResource AppBackgroundBrush}"
         Icon="/Assets/avalonia-logo.ico"
-        Width="1200"
-        Height="760"
-        MinWidth="960"
-        MinHeight="620"
-        Background="#F3F4EE"
         Title="velo-center">
 
     <Design.DataContext>
-        <vm:MainWindowViewModel/>
+        <vm:MainWindowViewModel />
     </Design.DataContext>
 
-    <Grid RowDefinitions="Auto,*" Margin="24">
-        <Border Padding="28"
-                CornerRadius="28"
-                Background="#14281F">
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="24">
-                <StackPanel Spacing="10">
-                    <TextBlock Text="{Binding AppTitle}"
-                               FontSize="36"
-                               FontWeight="Bold"
-                               Foreground="#F5F8F1" />
-                    <TextBlock Text="{Binding Subtitle}"
-                               FontSize="16"
-                               Foreground="#C8D4CB" />
-                    <Border Padding="12,8"
-                            CornerRadius="14"
-                            Background="#243A2F"
-                            HorizontalAlignment="Left">
-                        <TextBlock Text="{Binding CurrentFocus}"
-                                   FontSize="13"
-                                   Foreground="#DDF275" />
-                    </Border>
-                </StackPanel>
+    <Window.Styles>
+        <Style Selector="Button.chrome">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
 
-                <Border Padding="18,12"
-                        CornerRadius="18"
-                        Background="#DDF275"
-                        VerticalAlignment="Top">
-                    <TextBlock Text="Avalonia starter"
-                               FontSize="14"
+        <Style Selector="Button.nav-item">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+        </Style>
+
+        <Style Selector="Button.nav-item:pointerover">
+            <Setter Property="Foreground" Value="{DynamicResource AccentRoseBrush}" />
+        </Style>
+
+        <Style Selector="Button.nav-item.selected">
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+        </Style>
+
+        <Style Selector="Button.icon-button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+        </Style>
+
+        <Style Selector="Button.icon-button:pointerover">
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+        </Style>
+
+        <Style Selector="Button.toolbar-button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+        </Style>
+
+        <Style Selector="Button.toolbar-button:pointerover">
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+        </Style>
+    </Window.Styles>
+
+    <Grid ColumnDefinitions="Auto,*">
+        <Border Width="{Binding SidebarWidth}"
+                Background="{DynamicResource SidebarBackgroundBrush}"
+                BorderBrush="{DynamicResource ChromeBorderBrush}"
+                BorderThickness="0,0,1,0">
+            <Border.Transitions>
+                <Transitions>
+                    <DoubleTransition Property="Width"
+                                      Duration="0:0:0.18" />
+                </Transitions>
+            </Border.Transitions>
+
+            <Grid RowDefinitions="Auto,*,Auto">
+                <Grid ColumnDefinitions="*,Auto"
+                      ColumnSpacing="12"
+                      Margin="24,20,18,18">
+                    <TextBlock VerticalAlignment="Center"
+                               FontSize="28"
                                FontWeight="SemiBold"
-                               Foreground="#14281F" />
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               IsVisible="{Binding IsSidebarExpanded}"
+                               Text="{Binding AppTitle}" />
+
+                    <Button Grid.Column="1"
+                            Classes="icon-button"
+                            Command="{Binding ToggleSidebarCommand}"
+                            ToolTip.Tip="{Binding SidebarToggleTooltip}">
+                        <Border Width="42"
+                                Height="42"
+                                CornerRadius="15"
+                                Background="{DynamicResource IconShellBrush}"
+                                BorderBrush="{DynamicResource IconShellStrokeBrush}"
+                                BorderThickness="1">
+                            <Path Width="16"
+                                  Height="16"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  Data="{Binding SidebarToggleIconPathData}"
+                                  Stroke="{Binding $parent[Button].Foreground}"
+                                  StrokeLineCap="Round"
+                                  StrokeThickness="1.9" />
+                        </Border>
+                    </Button>
+                </Grid>
+
+                <ItemsControl Grid.Row="1"
+                              Margin="12,10,12,10"
+                              ItemsSource="{Binding NavigationItems}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:NavigationItemViewModel">
+                            <Button Classes="nav-item"
+                                    Classes.selected="{Binding IsSelected}"
+                                    Margin="0,0,0,10"
+                                    Command="{Binding ActivateCommand}"
+                                    CommandParameter="{Binding .}"
+                                    HorizontalContentAlignment="Stretch"
+                                    ToolTip.Tip="{Binding Title}">
+                                <Grid Height="56"
+                                      ColumnDefinitions="4,*"
+                                      ColumnSpacing="14">
+                                    <Border Width="4"
+                                            Height="32"
+                                            VerticalAlignment="Center"
+                                            Background="{DynamicResource AccentRoseBrush}"
+                                            CornerRadius="99"
+                                            Opacity="{Binding SelectionOpacity}" />
+
+                                    <StackPanel Grid.Column="1"
+                                                Orientation="Horizontal"
+                                                HorizontalAlignment="Left"
+                                                Spacing="14"
+                                                IsVisible="{Binding IsExpanded}">
+                                        <Border Width="42"
+                                                Height="42"
+                                                CornerRadius="15"
+                                                Background="{Binding IconBackground}"
+                                                BorderBrush="{Binding IconBorderBrush}"
+                                                BorderThickness="1">
+                                            <Path Width="20"
+                                                  Height="20"
+                                                  HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"
+                                                  Data="{Binding IconPathData}"
+                                                  Stroke="{Binding $parent[Button].Foreground}"
+                                                  StrokeLineCap="Round"
+                                                  StrokeThickness="1.9" />
+                                        </Border>
+
+                                        <TextBlock VerticalAlignment="Center"
+                                                   FontSize="15"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{Binding $parent[Button].Foreground}"
+                                                   Text="{Binding Title}" />
+                                    </StackPanel>
+
+                                    <Border Grid.Column="1"
+                                            Width="42"
+                                            Height="42"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            Background="{Binding IconBackground}"
+                                            BorderBrush="{Binding IconBorderBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="15"
+                                            IsVisible="{Binding IsCollapsed}">
+                                        <Path Width="20"
+                                              Height="20"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              Data="{Binding IconPathData}"
+                                              Stroke="{Binding $parent[Button].Foreground}"
+                                              StrokeLineCap="Round"
+                                              StrokeThickness="1.9" />
+                                    </Border>
+                                </Grid>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <Border Grid.Row="2"
+                        Padding="22,18"
+                        BorderBrush="{DynamicResource ChromeBorderBrush}"
+                        BorderThickness="0,1,0,0">
+                    <StackPanel Spacing="6">
+                        <TextBlock FontSize="11"
+                                   Foreground="{DynamicResource TextSubtleBrush}"
+                                   Text="SOURCE" />
+                        <TextBlock FontSize="14"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   Text="{Binding SidebarFooterTitle}" />
+                        <TextBlock FontSize="12"
+                                   Foreground="{DynamicResource TextMutedBrush}"
+                                   IsVisible="{Binding IsSidebarExpanded}"
+                                   Text="{Binding SidebarFooterDescription}"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
                 </Border>
             </Grid>
         </Border>
 
-        <Grid Grid.Row="1"
-              Margin="0,24,0,0"
-              ColumnDefinitions="2*,1*"
-              ColumnSpacing="24">
-            <StackPanel Spacing="24">
-                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="18">
-                    <Border Padding="18"
-                            CornerRadius="22"
-                            Background="#FFFFFF">
-                        <StackPanel Spacing="8">
-                            <TextBlock Text="Activities"
-                                       FontSize="14"
-                                       Foreground="#5B6C61" />
-                            <TextBlock Text="{Binding Overview.TotalActivities}"
-                                       FontSize="32"
-                                       FontWeight="Bold"
-                                       Foreground="#14281F" />
-                        </StackPanel>
-                    </Border>
-
-                    <Border Grid.Column="1"
-                            Padding="18"
-                            CornerRadius="22"
-                            Background="#FFFFFF">
-                        <StackPanel Spacing="8">
-                            <TextBlock Text="Distance"
-                                       FontSize="14"
-                                       Foreground="#5B6C61" />
-                            <TextBlock Text="{Binding Overview.TotalDistanceLabel}"
-                                       FontSize="32"
-                                       FontWeight="Bold"
-                                       Foreground="#14281F" />
-                        </StackPanel>
-                    </Border>
-
-                    <Border Grid.Column="2"
-                            Padding="18"
-                            CornerRadius="22"
-                            Background="#FFFFFF">
-                        <StackPanel Spacing="8">
-                            <TextBlock Text="Time"
-                                       FontSize="14"
-                                       Foreground="#5B6C61" />
-                            <TextBlock Text="{Binding Overview.TotalDurationLabel}"
-                                       FontSize="32"
-                                       FontWeight="Bold"
-                                       Foreground="#14281F" />
-                        </StackPanel>
-                    </Border>
-                </Grid>
-
-                <Border Padding="22"
-                        CornerRadius="24"
-                        Background="#FFFFFF">
-                    <StackPanel Spacing="16">
-                        <TextBlock Text="Recent rides"
-                                   FontSize="24"
+        <Grid Grid.Column="1"
+              RowDefinitions="Auto,*,Auto">
+            <Border Background="{DynamicResource TopBarBackgroundBrush}"
+                    BorderBrush="{DynamicResource ChromeBorderBrush}"
+                    BorderThickness="0,0,0,1">
+                <Grid Margin="28,18,28,18"
+                      ColumnDefinitions="*,Auto"
+                      ColumnSpacing="18">
+                    <StackPanel Spacing="4">
+                        <TextBlock FontSize="32"
                                    FontWeight="Bold"
-                                   Foreground="#14281F" />
-
-                        <ItemsControl ItemsSource="{Binding RecentActivities}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="vm:RecentRideViewModel">
-                                    <Border Margin="0,0,0,12"
-                                            Padding="16"
-                                            CornerRadius="18"
-                                            Background="#F7F8F3">
-                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-                                            <StackPanel Spacing="4">
-                                                <TextBlock Text="{Binding Title}"
-                                                           FontSize="18"
-                                                           FontWeight="SemiBold"
-                                                           Foreground="#14281F" />
-                                                <TextBlock Text="{Binding StartDateLabel}"
-                                                           FontSize="13"
-                                                           Foreground="#5B6C61" />
-                                            </StackPanel>
-
-                                            <StackPanel Spacing="4"
-                                                        HorizontalAlignment="Right">
-                                                <TextBlock Text="{Binding DistanceLabel}"
-                                                           HorizontalAlignment="Right"
-                                                           FontSize="18"
-                                                           FontWeight="SemiBold"
-                                                           Foreground="#14281F" />
-                                                <TextBlock Text="{Binding DurationLabel}"
-                                                           HorizontalAlignment="Right"
-                                                           FontSize="13"
-                                                           Foreground="#5B6C61" />
-                                                <TextBlock Text="{Binding SourceLabel}"
-                                                           HorizontalAlignment="Right"
-                                                           FontSize="13"
-                                                           Foreground="#7B8C3B" />
-                                            </StackPanel>
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   Text="{Binding CurrentSectionTitle}" />
+                        <TextBlock FontSize="13"
+                                   Foreground="{DynamicResource TextMutedBrush}"
+                                   Text="{Binding CurrentSectionDescription}"
+                                   TextWrapping="Wrap" />
                     </StackPanel>
-                </Border>
-            </StackPanel>
 
-            <Border Grid.Column="1"
-                    Padding="22"
-                    CornerRadius="24"
-                    Background="#FFFFFF">
-                <StackPanel Spacing="18">
-                    <TextBlock Text="Next steps"
-                               FontSize="24"
-                               FontWeight="Bold"
-                               Foreground="#14281F" />
+                    <StackPanel Grid.Column="1"
+                                Orientation="Horizontal"
+                                Spacing="10"
+                                VerticalAlignment="Center">
+                        <Border Padding="14,10"
+                                CornerRadius="16"
+                                Background="{DynamicResource PanelBackgroundBrush}"
+                                BorderBrush="{DynamicResource PanelStrokeBrush}"
+                                BorderThickness="1">
+                            <TextBlock FontSize="12"
+                                       Foreground="{DynamicResource TextMutedBrush}"
+                                       Text="{Binding CurrentRangeLabel}" />
+                        </Border>
 
-                    <ItemsControl ItemsSource="{Binding NextSteps}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border Margin="0,0,0,12"
-                                        Padding="14"
-                                        CornerRadius="16"
-                                        Background="#F7F8F3">
-                                    <TextBlock Text="{Binding .}"
-                                               TextWrapping="Wrap"
-                                               Foreground="#31453A" />
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </StackPanel>
+                        <Border Padding="14,10"
+                                CornerRadius="16"
+                                Background="{DynamicResource PanelBackgroundBrush}"
+                                BorderBrush="{DynamicResource PanelStrokeBrush}"
+                                BorderThickness="1">
+                            <TextBlock FontSize="12"
+                                       Foreground="{DynamicResource TextMutedBrush}"
+                                       Text="{Binding DataModeLabel}" />
+                        </Border>
+
+                        <Button Classes="toolbar-button"
+                                Command="{Binding RefreshCommand}">
+                            <Border Padding="14,10"
+                                    CornerRadius="16"
+                                    Background="{DynamicResource PanelBackgroundBrush}"
+                                    BorderBrush="{DynamicResource PanelStrokeBrush}"
+                                    BorderThickness="1">
+                                <TextBlock FontSize="13"
+                                           FontWeight="SemiBold"
+                                           Foreground="{Binding $parent[Button].Foreground}"
+                                           Text="Odswiez" />
+                            </Border>
+                        </Button>
+
+                        <Button Classes="toolbar-button"
+                                Command="{Binding SyncCommand}">
+                            <Border Padding="14,10"
+                                    CornerRadius="16"
+                                    Background="{DynamicResource PanelBackgroundBrush}"
+                                    BorderBrush="{DynamicResource PanelStrokeBrush}"
+                                    BorderThickness="1">
+                                <TextBlock FontSize="13"
+                                           FontWeight="SemiBold"
+                                           Foreground="{Binding $parent[Button].Foreground}"
+                                           Text="Synchronizuj" />
+                            </Border>
+                        </Button>
+
+                        <Button Classes="toolbar-button"
+                                Command="{Binding ImportCommand}">
+                            <Border Padding="14,10"
+                                    CornerRadius="16"
+                                    Background="{DynamicResource AccentSoftBrush}"
+                                    BorderBrush="{DynamicResource AccentStrongBrush}"
+                                    BorderThickness="1">
+                                <TextBlock FontSize="13"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                           Text="Importuj" />
+                            </Border>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Row="1">
+                <Canvas IsHitTestVisible="False">
+                    <Border Width="320"
+                            Height="320"
+                            CornerRadius="160"
+                            Background="#22D24CFF"
+                            Canvas.Left="36"
+                            Canvas.Top="-70" />
+                    <Border Width="440"
+                            Height="440"
+                            CornerRadius="220"
+                            Background="#1EDD68D4"
+                            Canvas.Right="-120"
+                            Canvas.Bottom="-110" />
+                    <Border Width="260"
+                            Height="260"
+                            CornerRadius="130"
+                            Background="#155C8CFF"
+                            Canvas.Right="280"
+                            Canvas.Top="72" />
+                </Canvas>
+
+                <ScrollViewer Padding="28,24,28,24"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <ContentControl Content="{Binding CurrentSectionViewModel}" />
+                </ScrollViewer>
+            </Grid>
+
+            <Border Grid.Row="2"
+                    Background="{DynamicResource StatusBarBackgroundBrush}"
+                    BorderBrush="{DynamicResource ChromeBorderBrush}"
+                    BorderThickness="0,1,0,0">
+                <Grid Margin="28,14,28,14"
+                      ColumnDefinitions="Auto,*,Auto"
+                      ColumnSpacing="18">
+                    <Border Padding="12,8"
+                            CornerRadius="14"
+                            Background="{Binding StatusBadgeBackground}"
+                            BorderBrush="{DynamicResource PanelStrokeBrush}"
+                            BorderThickness="1">
+                        <TextBlock FontSize="13"
+                                   FontWeight="SemiBold"
+                                   Foreground="{Binding StatusBadgeForeground}"
+                                   Text="{Binding StatusState}" />
+                    </Border>
+
+                    <StackPanel Grid.Column="1"
+                                Spacing="4">
+                        <TextBlock FontSize="12"
+                                   Foreground="{DynamicResource TextSubtleBrush}"
+                                   Text="STATUS" />
+                        <TextBlock FontSize="15"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   Text="{Binding StatusMessage}"
+                                   TextWrapping="Wrap" />
+                        <TextBlock FontSize="13"
+                                   Foreground="{DynamicResource TextMutedBrush}"
+                                   Text="{Binding ActiveTask}"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2"
+                                HorizontalAlignment="Right"
+                                Spacing="4">
+                        <TextBlock FontSize="12"
+                                   Foreground="{DynamicResource TextSubtleBrush}"
+                                   Text="SESJA" />
+                        <TextBlock FontSize="14"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   Text="{Binding LastActionLabel}" />
+                    </StackPanel>
+                </Grid>
             </Border>
         </Grid>
     </Grid>

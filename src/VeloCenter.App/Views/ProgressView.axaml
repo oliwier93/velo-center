@@ -1,0 +1,125 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:VeloCenter.App.ViewModels"
+             x:Class="VeloCenter.App.Views.ProgressView"
+             x:DataType="vm:ProgressViewModel">
+    <StackPanel Spacing="24">
+        <ItemsControl ItemsSource="{Binding Highlights}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:MetricTileViewModel">
+                    <Border Width="240"
+                            Margin="0,0,16,0"
+                            Padding="18"
+                            CornerRadius="22"
+                            Background="{DynamicResource PanelStrongBackgroundBrush}"
+                            BorderBrush="{DynamicResource PanelStrokeBrush}"
+                            BorderThickness="1">
+                        <StackPanel Spacing="8">
+                            <TextBlock FontSize="13"
+                                       Foreground="{DynamicResource TextSubtleBrush}"
+                                       Text="{Binding Label}" />
+                            <TextBlock FontSize="28"
+                                       FontWeight="Bold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       Text="{Binding Value}" />
+                            <TextBlock FontSize="13"
+                                       Foreground="{DynamicResource TextMutedBrush}"
+                                       Text="{Binding Detail}"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <Grid ColumnDefinitions="*,*"
+              ColumnSpacing="24">
+            <Border Padding="22"
+                    CornerRadius="24"
+                    Background="{DynamicResource PanelStrongBackgroundBrush}"
+                    BorderBrush="{DynamicResource PanelStrokeBrush}"
+                    BorderThickness="1">
+                <StackPanel Spacing="16">
+                    <TextBlock FontSize="24"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               Text="Sygnaly" />
+
+                    <ItemsControl ItemsSource="{Binding Signals}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:InfoCardViewModel">
+                                <Border Margin="0,0,0,12"
+                                        Padding="16"
+                                        CornerRadius="18"
+                                        Background="{DynamicResource PanelBackgroundBrush}"
+                                        BorderBrush="{DynamicResource PanelStrokeBrush}"
+                                        BorderThickness="1">
+                                    <StackPanel Spacing="6">
+                                        <TextBlock FontSize="12"
+                                                   Foreground="{DynamicResource TextSubtleBrush}"
+                                                   Text="{Binding Title}" />
+                                        <TextBlock FontSize="18"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                                   Text="{Binding Value}" />
+                                        <TextBlock FontSize="13"
+                                                   Foreground="{DynamicResource TextMutedBrush}"
+                                                   Text="{Binding Description}"
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="1"
+                    Padding="22"
+                    CornerRadius="24"
+                    Background="{DynamicResource PanelStrongBackgroundBrush}"
+                    BorderBrush="{DynamicResource PanelStrokeBrush}"
+                    BorderThickness="1">
+                <StackPanel Spacing="16">
+                    <TextBlock FontSize="24"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               Text="Nastepne unlocki" />
+
+                    <ItemsControl ItemsSource="{Binding FocusAreas}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:InfoCardViewModel">
+                                <Border Margin="0,0,0,12"
+                                        Padding="16"
+                                        CornerRadius="18"
+                                        Background="{DynamicResource PanelBackgroundBrush}"
+                                        BorderBrush="{DynamicResource PanelStrokeBrush}"
+                                        BorderThickness="1">
+                                    <StackPanel Spacing="6">
+                                        <TextBlock FontSize="12"
+                                                   Foreground="{DynamicResource TextSubtleBrush}"
+                                                   Text="{Binding Title}" />
+                                        <TextBlock FontSize="18"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                                   Text="{Binding Value}" />
+                                        <TextBlock FontSize="13"
+                                                   Foreground="{DynamicResource TextMutedBrush}"
+                                                   Text="{Binding Description}"
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </StackPanel>
+</UserControl>
