@@ -2,6 +2,13 @@
 
 public sealed class MainWindowViewModel : ViewModelBase
 {
+    private enum PipelineTaskKind
+    {
+        None,
+        Import,
+        Sync,
+    }
+
     private readonly OverviewViewModel _overviewViewModel;
     private readonly WorkoutsViewModel _workoutsViewModel;
     private readonly ProgressViewModel _progressViewModel;
@@ -9,6 +16,8 @@ public sealed class MainWindowViewModel : ViewModelBase
     private readonly SettingsViewModel _settingsViewModel;
     private readonly NavigationItemViewModel _overviewNavigationItem;
     private readonly NavigationItemViewModel _importNavigationItem;
+    private readonly Avalonia.Threading.DispatcherTimer _taskStripeTimer;
+    private readonly System.Diagnostics.Stopwatch _taskStripeStopwatch;
 
     private bool _isSidebarExpanded;
     private bool _isSidebarContentExpanded;
@@ -21,6 +30,11 @@ public sealed class MainWindowViewModel : ViewModelBase
     private string _lastActionLabel = string.Empty;
     private string _statusBadgeBackground = "#2A1734";
     private string _statusBadgeForeground = "#F7E9FF";
+    private PipelineTaskKind _currentPipelineTask;
+    private string _taskTitle = string.Empty;
+    private string _taskDetail = string.Empty;
+    private double _taskProgressValue;
+    private double _taskStripeOffset;
 
     public MainWindowViewModel()
         : this(new VeloCenter.Infrastructure.Activities.InMemoryActivityRepository())
@@ -84,6 +98,22 @@ public sealed class MainWindowViewModel : ViewModelBase
 
         ApplySidebarStateToNavigationItems();
         SelectSection(_overviewNavigationItem);
+        SetTaskMonitor("Import FIT / GPX", "Mock postepu do dopracowania UI.", 64);
+
+        _taskStripeStopwatch = System.Diagnostics.Stopwatch.StartNew();
+        _taskStripeTimer = new Avalonia.Threading.DispatcherTimer
+        {
+            Interval = System.TimeSpan.FromMilliseconds(16),
+        };
+        _taskStripeTimer.Tick += (_, _) =>
+        {
+            const double stripePeriod = 32;
+            const double stripeSpeed = 80;
+
+            TaskStripeOffset = (_taskStripeStopwatch.Elapsed.TotalSeconds * stripeSpeed) % stripePeriod;
+        };
+        _taskStripeTimer.Start();
+
         UpdateStatus(
             "Ready",
             "Nowy shell zaladowal probne aktywnosci i gotowe sekcje aplikacji.",
@@ -93,6 +123,12 @@ public sealed class MainWindowViewModel : ViewModelBase
     }
 
     public string AppTitle { get; } = "Velo Center";
+
+    public string AppVersionLabel { get; } = $"v{ResolveApplicationVersion()}";
+
+    public string AppAuthorLabel { get; } = "Oliwier Baran";
+
+    public string AppMetaLabel => $"{AppVersionLabel}  •  {AppAuthorLabel}";
 
     public string CurrentRangeLabel { get; } = "Zakres: 30 dni";
 
@@ -183,6 +219,41 @@ public sealed class MainWindowViewModel : ViewModelBase
         private set => SetProperty(ref _statusBadgeForeground, value);
     }
 
+    public string TaskTitle
+    {
+        get => _taskTitle;
+        private set => SetProperty(ref _taskTitle, value);
+    }
+
+    public string TaskDetail
+    {
+        get => _taskDetail;
+        private set => SetProperty(ref _taskDetail, value);
+    }
+
+    public double TaskProgressValue
+    {
+        get => _taskProgressValue;
+        private set
+        {
+            if (SetProperty(ref _taskProgressValue, value))
+            {
+                OnPropertyChanged(nameof(TaskProgressLabel));
+                OnPropertyChanged(nameof(TaskProgressFillWidth));
+            }
+        }
+    }
+
+    public string TaskProgressLabel => $"{TaskProgressValue:0}%";
+
+    public double TaskProgressFillWidth => 4.2 * TaskProgressValue;
+
+    public double TaskStripeOffset
+    {
+        get => _taskStripeOffset;
+        private set => SetProperty(ref _taskStripeOffset, value);
+    }
+
     public CommunityToolkit.Mvvm.Input.IRelayCommand<NavigationItemViewModel?> SelectSectionCommand { get; }
 
     public CommunityToolkit.Mvvm.Input.IRelayCommand ImportCommand { get; }
@@ -244,6 +315,16 @@ public sealed class MainWindowViewModel : ViewModelBase
     private void OpenImportWorkspace()
     {
         SelectSection(_importNavigationItem);
+
+        if (!TryStartPipelineTask(
+                PipelineTaskKind.Import,
+                "Import FIT / GPX",
+                "Czytanie plikow, mapowanie aktywnosci i zapis do lokalnej bazy. Synchronizacja czeka na wolny pipeline.",
+                28))
+        {
+            return;
+        }
+
         UpdateStatus(
             "Queued",
             "Otworzono przestrzen importu dla FIT, GPX i przyszlego syncu.",
@@ -254,6 +335,15 @@ public sealed class MainWindowViewModel : ViewModelBase
 
     private void StartSyncPlaceholder()
     {
+        if (!TryStartPipelineTask(
+                PipelineTaskKind.Sync,
+                "Synchronizacja z API",
+                "Pobieranie zmian, uzgadnianie aktywnosci i odswiezanie lokalnych danych. Import poczeka na zakonczenie syncu.",
+                34))
+        {
+            return;
+        }
+
         UpdateStatus(
             "Pending",
             "Synchronizacja jest na razie placeholderem warstwy shell.",
@@ -264,10 +354,13 @@ public sealed class MainWindowViewModel : ViewModelBase
 
     private void RefreshCurrentSection()
     {
+        AdvancePipelineTask();
         UpdateStatus(
             "Updated",
             $"Odswiezono placeholder dla sekcji {CurrentSectionTitle.ToLowerInvariant()}.",
-            "Brak zadania w tle.",
+            _currentPipelineTask is PipelineTaskKind.None
+                ? "Brak zadania w tle."
+                : "Biezace zadanie posunelo sie o kolejny krok pipeline.",
             "#301A44",
             "#F1B2FF");
     }
@@ -292,6 +385,94 @@ public sealed class MainWindowViewModel : ViewModelBase
         }
 
         IsSidebarContentExpanded = false;
+    }
+
+    private bool TryStartPipelineTask(
+        PipelineTaskKind taskKind,
+        string title,
+        string detail,
+        double progress)
+    {
+        if (_currentPipelineTask is not PipelineTaskKind.None && _currentPipelineTask != taskKind)
+        {
+            UpdateStatus(
+                "Busy",
+                "Pipeline jest juz zajety przez inne zadanie.",
+                "Import i synchronizacja nie uruchamiaja sie rownoczesnie.",
+                "#3A1B47",
+                "#FF9AE3");
+            return false;
+        }
+
+        _currentPipelineTask = taskKind;
+        SetTaskMonitor(title, detail, progress);
+        return true;
+    }
+
+    private void AdvancePipelineTask()
+    {
+        if (_currentPipelineTask is PipelineTaskKind.None)
+        {
+            SetTaskMonitorIdle("Pipeline czeka na import albo synchronizacje.");
+            return;
+        }
+
+        var nextProgress = System.Math.Min(100, TaskProgressValue + 18);
+        var taskIsImport = _currentPipelineTask is PipelineTaskKind.Import;
+        var title = taskIsImport ? "Import FIT / GPX" : "Synchronizacja z API";
+
+        if (nextProgress >= 100)
+        {
+            _currentPipelineTask = PipelineTaskKind.None;
+            SetTaskMonitorIdle(
+                taskIsImport
+                    ? "Import zakonczony. Pipeline jest wolny i gotowy na synchronizacje."
+                    : "Synchronizacja zakonczona. Mozesz odpalic kolejny import albo analize.");
+            UpdateStatus(
+                "Done",
+                taskIsImport ? "Import zakonczyl sie pomyslnie." : "Synchronizacja zakonczyl sie pomyslnie.",
+                "Pipeline jest wolny.",
+                "#2A1734",
+                "#F7E9FF");
+            return;
+        }
+
+        SetTaskMonitor(
+            title,
+            taskIsImport
+                ? "Import trwa. Odczyt plikow i mapowanie aktywnosci sa w toku."
+                : "Synchronizacja trwa. Uzgadnianie aktywnosci z lokalna baza jest w toku.",
+            nextProgress);
+    }
+
+    private void SetTaskMonitorIdle(string detail)
+    {
+        SetTaskMonitor("Brak aktywnego zadania", detail, 0);
+    }
+
+    private void SetTaskMonitor(
+        string title,
+        string detail,
+        double progress)
+    {
+        TaskTitle = title;
+        TaskDetail = detail;
+        TaskProgressValue = progress;
+    }
+
+    private static string ResolveApplicationVersion()
+    {
+        var version = System.Reflection.CustomAttributeExtensions
+            .GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>(
+                System.Reflection.Assembly.GetExecutingAssembly())?
+            .InformationalVersion;
+
+        if (string.IsNullOrWhiteSpace(version))
+        {
+            return "0.1.0";
+        }
+
+        return version.Split('+')[0];
     }
 
     private void UpdateStatus(

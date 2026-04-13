@@ -300,46 +300,241 @@
                     Background="{DynamicResource StatusBarBackgroundBrush}"
                     BorderBrush="{DynamicResource ChromeBorderBrush}"
                     BorderThickness="0,1,0,0">
-                <Grid Margin="108,14,28,14"
-                      ColumnDefinitions="Auto,*,Auto"
-                      ColumnSpacing="18">
-                    <Border Padding="12,8"
-                            CornerRadius="14"
-                            Background="{Binding StatusBadgeBackground}"
-                            BorderBrush="{DynamicResource PanelStrokeBrush}"
-                            BorderThickness="1">
-                        <TextBlock FontSize="13"
-                                   FontWeight="SemiBold"
-                                   Foreground="{Binding StatusBadgeForeground}"
-                                   Text="{Binding StatusState}" />
-                    </Border>
-
-                    <StackPanel Grid.Column="1"
-                                Spacing="4">
-                        <TextBlock FontSize="12"
-                                   Foreground="{DynamicResource TextSubtleBrush}"
-                                   Text="STATUS" />
-                        <TextBlock FontSize="15"
+                <Grid Margin="108,10,28,10">
+                    <StackPanel HorizontalAlignment="Center"
+                                Spacing="7"
+                                Width="420">
+                        <TextBlock HorizontalAlignment="Center"
+                                   FontSize="13"
                                    FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextPrimaryBrush}"
-                                   Text="{Binding StatusMessage}"
-                                   TextWrapping="Wrap" />
-                        <TextBlock FontSize="13"
-                                   Foreground="{DynamicResource TextMutedBrush}"
-                                   Text="{Binding ActiveTask}"
-                                   TextWrapping="Wrap" />
+                                   Text="{Binding TaskTitle}"
+                                   TextAlignment="Center" />
+
+                        <Grid Width="420"
+                              Height="16">
+                            <Border Height="16"
+                                    CornerRadius="99"
+                                    Background="#24172331" />
+                            <Border Width="{Binding TaskProgressFillWidth}"
+                                    Height="16"
+                                    HorizontalAlignment="Left"
+                                    CornerRadius="99"
+                                    ClipToBounds="True">
+                                <Grid ClipToBounds="True">
+                                    <Border Background="{DynamicResource AccentStrongBrush}" />
+                                    <Canvas IsHitTestVisible="False">
+                                        <Canvas.RenderTransform>
+                                            <TranslateTransform X="{Binding TaskStripeOffset}" />
+                                        </Canvas.RenderTransform>
+
+                                        <Border Width="16"
+                                                Height="34"
+                                                Background="#44FFF5FF"
+                                                CornerRadius="8"
+                                                Canvas.Left="-32"
+                                                Canvas.Top="-9">
+                                            <Border.RenderTransform>
+                                                <RotateTransform Angle="-24" />
+                                            </Border.RenderTransform>
+                                        </Border>
+
+                                        <Border Width="16"
+                                                Height="34"
+                                                Background="#44FFF5FF"
+                                                CornerRadius="8"
+                                                Canvas.Left="0"
+                                                Canvas.Top="-9">
+                                            <Border.RenderTransform>
+                                                <RotateTransform Angle="-24" />
+                                            </Border.RenderTransform>
+                                        </Border>
+
+                                        <Border Width="16"
+                                                Height="34"
+                                                Background="#44FFF5FF"
+                                                CornerRadius="8"
+                                                Canvas.Left="32"
+                                                Canvas.Top="-9">
+                                            <Border.RenderTransform>
+                                                <RotateTransform Angle="-24" />
+                                            </Border.RenderTransform>
+                                        </Border>
+
+                                        <Border Width="16"
+                                                Height="34"
+                                                Background="#44FFF5FF"
+                                                CornerRadius="8"
+                                                Canvas.Left="64"
+                                                Canvas.Top="-9">
+                                            <Border.RenderTransform>
+                                                <RotateTransform Angle="-24" />
+                                            </Border.RenderTransform>
+                                        </Border>
+
+                                        <Border Width="16"
+                                                Height="34"
+                                                Background="#44FFF5FF"
+                                                CornerRadius="8"
+                                                Canvas.Left="96"
+                                                Canvas.Top="-9">
+                                            <Border.RenderTransform>
+                                                <RotateTransform Angle="-24" />
+                                            </Border.RenderTransform>
+                                        </Border>
+
+                                        <Border Width="16"
+                                                Height="34"
+                                                Background="#44FFF5FF"
+                                                CornerRadius="8"
+                                                Canvas.Left="128"
+                                                Canvas.Top="-9">
+                                            <Border.RenderTransform>
+                                                <RotateTransform Angle="-24" />
+                                            </Border.RenderTransform>
+                                        </Border>
+
+                                        <Border Width="16"
+                                                Height="34"
+                                                Background="#44FFF5FF"
+                                                CornerRadius="8"
+                                                Canvas.Left="160"
+                                                Canvas.Top="-9">
+                                            <Border.RenderTransform>
+                                                <RotateTransform Angle="-24" />
+                                            </Border.RenderTransform>
+                                        </Border>
+
+                                        <Border Width="16"
+                                                Height="34"
+                                                Background="#44FFF5FF"
+                                                CornerRadius="8"
+                                                Canvas.Left="192"
+                                                Canvas.Top="-9">
+                                            <Border.RenderTransform>
+                                                <RotateTransform Angle="-24" />
+                                            </Border.RenderTransform>
+                                        </Border>
+
+                                        <Border Width="16"
+                                                Height="34"
+                                                Background="#44FFF5FF"
+                                                CornerRadius="8"
+                                                Canvas.Left="224"
+                                                Canvas.Top="-9">
+                                            <Border.RenderTransform>
+                                                <RotateTransform Angle="-24" />
+                                            </Border.RenderTransform>
+                                        </Border>
+
+                                        <Border Width="16"
+                                                Height="34"
+                                                Background="#44FFF5FF"
+                                                CornerRadius="8"
+                                                Canvas.Left="256"
+                                                Canvas.Top="-9">
+                                            <Border.RenderTransform>
+                                                <RotateTransform Angle="-24" />
+                                            </Border.RenderTransform>
+                                        </Border>
+
+                                        <Border Width="16"
+                                                Height="34"
+                                                Background="#44FFF5FF"
+                                                CornerRadius="8"
+                                                Canvas.Left="288"
+                                                Canvas.Top="-9">
+                                            <Border.RenderTransform>
+                                                <RotateTransform Angle="-24" />
+                                            </Border.RenderTransform>
+                                        </Border>
+
+                                        <Border Width="16"
+                                                Height="34"
+                                                Background="#44FFF5FF"
+                                                CornerRadius="8"
+                                                Canvas.Left="320"
+                                                Canvas.Top="-9">
+                                            <Border.RenderTransform>
+                                                <RotateTransform Angle="-24" />
+                                            </Border.RenderTransform>
+                                        </Border>
+
+                                        <Border Width="16"
+                                                Height="34"
+                                                Background="#44FFF5FF"
+                                                CornerRadius="8"
+                                                Canvas.Left="352"
+                                                Canvas.Top="-9">
+                                            <Border.RenderTransform>
+                                                <RotateTransform Angle="-24" />
+                                            </Border.RenderTransform>
+                                        </Border>
+
+                                        <Border Width="16"
+                                                Height="34"
+                                                Background="#44FFF5FF"
+                                                CornerRadius="8"
+                                                Canvas.Left="384"
+                                                Canvas.Top="-9">
+                                            <Border.RenderTransform>
+                                                <RotateTransform Angle="-24" />
+                                            </Border.RenderTransform>
+                                        </Border>
+
+                                        <Border Width="16"
+                                                Height="34"
+                                                Background="#44FFF5FF"
+                                                CornerRadius="8"
+                                                Canvas.Left="416"
+                                                Canvas.Top="-9">
+                                            <Border.RenderTransform>
+                                                <RotateTransform Angle="-24" />
+                                            </Border.RenderTransform>
+                                        </Border>
+
+                                        <Border Width="16"
+                                                Height="34"
+                                                Background="#44FFF5FF"
+                                                CornerRadius="8"
+                                                Canvas.Left="448"
+                                                Canvas.Top="-9">
+                                            <Border.RenderTransform>
+                                                <RotateTransform Angle="-24" />
+                                            </Border.RenderTransform>
+                                        </Border>
+                                    </Canvas>
+                                </Grid>
+                            </Border>
+                            <TextBlock HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       FontSize="11"
+                                       FontWeight="Bold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       Text="{Binding TaskProgressLabel}" />
+                        </Grid>
                     </StackPanel>
 
-                    <StackPanel Grid.Column="2"
-                                HorizontalAlignment="Right"
+                    <StackPanel HorizontalAlignment="Right"
+                                VerticalAlignment="Center"
                                 Spacing="4">
-                        <TextBlock FontSize="12"
-                                   Foreground="{DynamicResource TextSubtleBrush}"
-                                   Text="SESJA" />
-                        <TextBlock FontSize="14"
-                                   FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TextPrimaryBrush}"
-                                   Text="{Binding LastActionLabel}" />
+                        <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Right"
+                                    Spacing="8">
+                            <TextBlock FontSize="13"
+                                       FontWeight="Light"
+                                       Foreground="{DynamicResource TextMutedBrush}"
+                                       Text="{Binding AppTitle}" />
+                            <TextBlock FontSize="13"
+                                       FontWeight="Light"
+                                       Foreground="{DynamicResource TextMutedBrush}"
+                                       Text="{Binding AppVersionLabel}" />
+                        </StackPanel>
+                        <TextBlock HorizontalAlignment="Right"
+                                   FontSize="13"
+                                   FontWeight="Light"
+                                   Foreground="{DynamicResource TextMutedBrush}"
+                                   Text="{Binding AppAuthorLabel}" />
                     </StackPanel>
                 </Grid>
             </Border>
