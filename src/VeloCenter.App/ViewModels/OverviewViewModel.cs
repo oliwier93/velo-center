@@ -28,8 +28,8 @@ public sealed class OverviewViewModel : ViewModelBase
                 ? "Trwaly magazyn jest gotowy na prawdziwe importy."
                 : "Baza startuje pusta, wiec od razu widac realny stan aplikacji."),
             new InfoCardViewModel("Pierwszy importer", "FIT albo GPX", HasActivities
-                ? "Kolejny krok to zapis z lokalnego pliku do tabel aktywnosci."
-                : "Wybierz plik w sekcji importu, zeby uruchomic testowy loader frontendu."),
+                ? "Lokalny import zapisuje juz dane do SQLite i odswieza widoki."
+                : "Wybierz plik w sekcji importu, aby zapisac pierwsza aktywnosc."),
             new InfoCardViewModel("Analiza", "Trendy tygodniowe", "Dodaj wykresy objetosci, dystansu i czasu."),
         ];
     }

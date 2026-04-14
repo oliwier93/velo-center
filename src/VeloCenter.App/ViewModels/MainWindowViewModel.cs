@@ -6,19 +6,20 @@ public sealed class MainWindowViewModel : ViewModelBase
     {
         None,
         Import,
-        Sync,
     }
 
-    private readonly OverviewViewModel _overviewViewModel;
-    private readonly WorkoutsViewModel _workoutsViewModel;
-    private readonly ProgressViewModel _progressViewModel;
+    private readonly VeloCenter.Core.Activities.IActivityRepository _activityRepository;
+    private readonly VeloCenter.Core.Activities.IActivityImportService _activityImportService;
+    private OverviewViewModel _overviewViewModel = null!;
+    private WorkoutsViewModel _workoutsViewModel = null!;
+    private ProgressViewModel _progressViewModel = null!;
     private readonly ImportViewModel _importViewModel;
     private readonly SettingsViewModel _settingsViewModel;
     private readonly NavigationItemViewModel _overviewNavigationItem;
     private readonly NavigationItemViewModel _importNavigationItem;
     private readonly Avalonia.Threading.DispatcherTimer _taskStripeTimer;
     private readonly System.Diagnostics.Stopwatch _taskStripeStopwatch;
-    private readonly bool _hasActivities;
+    private bool _hasActivities;
 
     private bool _isSidebarExpanded;
     private bool _isSidebarContentExpanded;
@@ -36,20 +37,25 @@ public sealed class MainWindowViewModel : ViewModelBase
     private string _taskDetail = string.Empty;
     private double _taskProgressValue;
     private double _taskStripeOffset;
+    private bool _isToastVisible;
+    private string _toastMessage = string.Empty;
+    private string _toastBackground = "#20342C";
+    private string _toastForeground = "#F3FFF8";
+    private int _toastVersion;
 
     public MainWindowViewModel()
-        : this(new VeloCenter.Infrastructure.Activities.InMemoryActivityRepository())
+        : this(
+            new VeloCenter.Infrastructure.Activities.InMemoryActivityRepository(),
+            new VeloCenter.Infrastructure.Activities.InMemoryActivityImportService())
     {
     }
 
-    public MainWindowViewModel(VeloCenter.Core.Activities.IActivityRepository activityRepository)
+    public MainWindowViewModel(
+        VeloCenter.Core.Activities.IActivityRepository activityRepository,
+        VeloCenter.Core.Activities.IActivityImportService activityImportService)
     {
-        var activities = activityRepository.GetRecentActivities();
-        _hasActivities = activities.Count > 0;
-
-        _overviewViewModel = new OverviewViewModel(VeloCenter.Core.Activities.TrainingOverview.FromActivities(activities), activities);
-        _workoutsViewModel = new WorkoutsViewModel(activities);
-        _progressViewModel = new ProgressViewModel(activities);
+        _activityRepository = activityRepository;
+        _activityImportService = activityImportService;
         _importViewModel = new ImportViewModel();
         _settingsViewModel = new SettingsViewModel();
 
@@ -71,7 +77,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         _importNavigationItem = new NavigationItemViewModel(
             "import",
             "Import",
-            "Pliki FIT i GPX, synchronizacja oraz kolejka zadan.",
+            "Import plikow aktywnosci do lokalnej bazy.",
             "M12,4 V13 M8,10 L12,14 L16,10 M5,18 H19 V20 H5 Z");
         var settingsNavigationItem = new NavigationItemViewModel(
             "settings",
@@ -96,6 +102,7 @@ public sealed class MainWindowViewModel : ViewModelBase
             navigationItem.ActivateCommand = SelectSectionCommand;
         }
 
+        ReloadActivitySections();
         ApplySidebarStateToNavigationItems();
         SelectSection(_hasActivities ? _overviewNavigationItem : _importNavigationItem);
         SetTaskMonitorIdle("Loader uruchomi sie dopiero po wybraniu pliku FIT albo GPX.");
@@ -118,7 +125,7 @@ public sealed class MainWindowViewModel : ViewModelBase
             _hasActivities ? "Ready" : "Empty",
             _hasActivities
                 ? "Aplikacja zaladowala aktywnosci z lokalnej bazy."
-                : "Baza jest pusta. Zacznij od wyboru lokalnego pliku do importu.",
+                : "Baza jest pusta. Zacznij od wyboru pliku do importu.",
             _hasActivities
                 ? "Brak zadania w tle."
                 : "Loader pozostaje ukryty, dopoki nie wybierzesz pliku.",
@@ -258,6 +265,30 @@ public sealed class MainWindowViewModel : ViewModelBase
 
     public bool IsTaskMonitorVisible => _currentPipelineTask is not PipelineTaskKind.None;
 
+    public bool IsToastVisible
+    {
+        get => _isToastVisible;
+        private set => SetProperty(ref _isToastVisible, value);
+    }
+
+    public string ToastMessage
+    {
+        get => _toastMessage;
+        private set => SetProperty(ref _toastMessage, value);
+    }
+
+    public string ToastBackground
+    {
+        get => _toastBackground;
+        private set => SetProperty(ref _toastBackground, value);
+    }
+
+    public string ToastForeground
+    {
+        get => _toastForeground;
+        private set => SetProperty(ref _toastForeground, value);
+    }
+
     public CommunityToolkit.Mvvm.Input.IRelayCommand<NavigationItemViewModel?> SelectSectionCommand { get; }
 
     public CommunityToolkit.Mvvm.Input.IRelayCommand SyncCommand { get; }
@@ -276,18 +307,18 @@ public sealed class MainWindowViewModel : ViewModelBase
         if (!TryStartPipelineTask(
                 PipelineTaskKind.Import,
                 "Import pliku treningowego",
-                $"Przygotowanie {fileName} do przyszlego parsera i zapisu w SQLite.",
+                $"Przygotowanie {fileName} do zapisu w SQLite.",
                 12))
         {
             _importViewModel.SetImportBlocked("Poczekaj na zakonczenie biezacego zadania i sprobuj ponownie.");
             return;
         }
 
-        _importViewModel.SetSelectedFile(filePath);
+        _importViewModel.SetImportQueued(filePath);
 
         UpdateStatus(
             "Import",
-            $"Rozpoczeto testowe wczytywanie pliku {fileName}.",
+            $"Rozpoczeto import pliku {fileName}.",
             "Dolny loader jest aktywny tylko dla tego importu.",
             "#3A1B47",
             "#FF9AE3");
@@ -427,19 +458,50 @@ public sealed class MainWindowViewModel : ViewModelBase
 
         try
         {
-            await AdvanceImportStepAsync("Sprawdzanie rozszerzenia i przygotowanie loadera.", 28, 220);
-            await AdvanceImportStepAsync("Plik trafia do testowego przeplywu UI bez zapisu do bazy.", 57, 260);
-            await AdvanceImportStepAsync("Walidacja pustego stanu i odswiezenie kontrolek importu.", 86, 240);
-            await AdvanceImportStepAsync("Loader zakonczyl przebieg testowy.", 100, 180);
+            await AdvanceImportStepAsync("Sprawdzanie formatu pliku.", 18, 180);
+            await AdvanceImportStepAsync("Odczytywanie danych aktywnosci.", 44, 220);
 
-            _importViewModel.SetImportCompleted(filePath);
+            var result = _activityImportService.ImportLocalFile(filePath);
+            ReloadActivitySections();
+
+            await AdvanceImportStepAsync(
+                result.WasCreated
+                    ? "Aktywnosc zostala zapisana w SQLite."
+                    : "Istniejaca aktywnosc zostala zaktualizowana w SQLite.",
+                73,
+                220);
+            await AdvanceImportStepAsync("Odswiezanie widokow aplikacji.", 100, 200);
+
+            _importViewModel.SetImportCompleted(result);
+            _ = ShowToastAsync(
+                result.WasCreated
+                    ? $"Zaimportowano {result.Activity.Title}"
+                    : $"Zaktualizowano {result.Activity.Title}",
+                "#20342C",
+                "#F3FFF8");
 
             UpdateStatus(
                 "Done",
-                $"Plik {fileName} przeszedl przez frontendowy loader.",
-                "Na razie to test UI bez parsera i bez zapisu do SQLite.",
+                result.WasCreated
+                    ? $"Plik {fileName} zostal zapisany w bazie."
+                    : $"Plik {fileName} zaktualizowal istniejacy wpis w bazie.",
+                "Aktywnosc jest juz dostepna w pozostalych sekcjach aplikacji.",
                 "#2A1734",
                 "#F7E9FF");
+        }
+        catch (Exception exception)
+        {
+            var errorMessage = GetImportErrorMessage(exception);
+
+            _importViewModel.SetImportFailed(errorMessage);
+            _ = ShowToastAsync("Import nie powiodl sie", "#4A1D28", "#FFD9E1");
+
+            UpdateStatus(
+                "Error",
+                $"Import pliku {fileName} nie powiodl sie.",
+                errorMessage,
+                "#4A1D28",
+                "#FFD9E1");
         }
         finally
         {
@@ -454,8 +516,16 @@ public sealed class MainWindowViewModel : ViewModelBase
         double progress,
         int delayMs)
     {
-        SetTaskMonitor("Import pliku treningowego", detail, progress);
-        await System.Threading.Tasks.Task.Delay(delayMs);
+        var startProgress = TaskProgressValue;
+        var steps = Math.Max(1, delayMs / 24);
+
+        for (var step = 1; step <= steps; step++)
+        {
+            var interpolatedProgress = startProgress + ((progress - startProgress) * step / steps);
+
+            SetTaskMonitor("Import pliku treningowego", detail, interpolatedProgress);
+            await System.Threading.Tasks.Task.Delay(Math.Max(16, delayMs / steps));
+        }
     }
 
     private void SetTaskMonitorIdle(string detail)
@@ -483,6 +553,52 @@ public sealed class MainWindowViewModel : ViewModelBase
         _currentPipelineTask = taskKind;
         OnPropertyChanged(nameof(IsTaskMonitorVisible));
     }
+
+    private async System.Threading.Tasks.Task ShowToastAsync(
+        string message,
+        string background,
+        string foreground)
+    {
+        var version = ++_toastVersion;
+
+        ToastMessage = message;
+        ToastBackground = background;
+        ToastForeground = foreground;
+        IsToastVisible = true;
+
+        await System.Threading.Tasks.Task.Delay(2600);
+
+        if (version != _toastVersion)
+        {
+            return;
+        }
+
+        IsToastVisible = false;
+    }
+
+    private void ReloadActivitySections()
+    {
+        var activities = _activityRepository.GetRecentActivities();
+
+        _hasActivities = activities.Count > 0;
+        _overviewViewModel = new OverviewViewModel(VeloCenter.Core.Activities.TrainingOverview.FromActivities(activities), activities);
+        _workoutsViewModel = new WorkoutsViewModel(activities);
+        _progressViewModel = new ProgressViewModel(activities);
+
+        var selectedNavigationItem = NavigationItems.FirstOrDefault(item => item.IsSelected);
+
+        if (selectedNavigationItem is not null)
+        {
+            CurrentSectionViewModel = ResolveSection(selectedNavigationItem.Key);
+        }
+    }
+
+    private static string GetImportErrorMessage(Exception exception) => exception switch
+    {
+        FileNotFoundException => "Wybrany plik nie jest juz dostepny.",
+        InvalidDataException => exception.Message,
+        _ => "Nie udalo sie zapisac aktywnosci do lokalnej bazy.",
+    };
 
     private static string ResolveApplicationVersion()
     {

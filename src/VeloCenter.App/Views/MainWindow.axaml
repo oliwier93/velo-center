@@ -307,6 +307,29 @@
                               HorizontalScrollBarVisibility="Disabled">
                     <ContentControl Content="{Binding CurrentSectionViewModel}" />
                 </ScrollViewer>
+
+                <Border HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        Margin="0,18,28,0"
+                        Padding="16,12"
+                        CornerRadius="18"
+                        Background="{Binding ToastBackground}"
+                        IsVisible="{Binding IsToastVisible}"
+                        ZIndex="20">
+                    <Border.Transitions>
+                        <Transitions>
+                            <DoubleTransition Property="Opacity"
+                                              Duration="0:0:0.18" />
+                        </Transitions>
+                    </Border.Transitions>
+
+                    <TextBlock MaxWidth="280"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               Foreground="{Binding ToastForeground}"
+                               Text="{Binding ToastMessage}"
+                               TextWrapping="Wrap" />
+                </Border>
             </Grid>
 
             <Border Grid.Row="2"
@@ -335,6 +358,13 @@
                                     HorizontalAlignment="Left"
                                     CornerRadius="99"
                                     ClipToBounds="True">
+                                <Border.Transitions>
+                                    <Transitions>
+                                        <DoubleTransition Property="Width"
+                                                          Duration="0:0:0.14" />
+                                    </Transitions>
+                                </Border.Transitions>
+
                                 <Grid ClipToBounds="True">
                                     <Border Background="{DynamicResource AccentStrongBrush}" />
                                     <Canvas IsHitTestVisible="False">

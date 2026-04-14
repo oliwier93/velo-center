@@ -23,10 +23,12 @@ public partial class App : Application
         {
             var databasePath = VeloCenterSqliteDatabase.GetDefaultDatabasePath();
             VeloCenterSqliteDatabase.Initialize(databasePath, seedDemoData: false);
+            var activityRepository = new SqliteActivityRepository(databasePath);
+            var activityImportService = new LocalFileActivityImportService(databasePath);
 
             desktop.MainWindow = new MainWindow
             {
-                DataContext = new MainWindowViewModel(new SqliteActivityRepository(databasePath)),
+                DataContext = new MainWindowViewModel(activityRepository, activityImportService),
             };
         }
 

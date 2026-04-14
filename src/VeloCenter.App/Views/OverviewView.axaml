@@ -64,7 +64,7 @@
                                        Text="Baza jest jeszcze pusta" />
                             <TextBlock FontSize="13"
                                        Foreground="{DynamicResource TextMutedBrush}"
-                                       Text="To jest celowy pusty stan. Przejdz do importu i wybierz pierwszy plik FIT albo GPX, zeby zaczac testy z loaderem."
+                                       Text="To jest celowy pusty stan. Przejdz do importu i wybierz pierwszy plik FIT albo GPX, zeby zapisac pierwsza aktywnosc."
                                        TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
