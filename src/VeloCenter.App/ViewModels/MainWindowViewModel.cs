@@ -7,11 +7,13 @@ public sealed class MainWindowViewModel : ViewModelBase
         None,
         Import,
         Sync,
+        Maintenance,
     }
 
     private readonly VeloCenter.Core.Activities.IActivityRepository _activityRepository;
     private readonly VeloCenter.Core.Activities.IActivityImportService _activityImportService;
     private readonly VeloCenter.Core.Integrations.IStravaIntegrationService _stravaIntegrationService;
+    private readonly VeloCenter.Core.Maintenance.IApplicationResetService _applicationResetService;
     private OverviewViewModel _overviewViewModel = null!;
     private WorkoutsViewModel _workoutsViewModel = null!;
     private ProgressViewModel _progressViewModel = null!;
@@ -49,18 +51,21 @@ public sealed class MainWindowViewModel : ViewModelBase
         : this(
             new VeloCenter.Infrastructure.Activities.InMemoryActivityRepository(),
             new VeloCenter.Infrastructure.Activities.InMemoryActivityImportService(),
-            new VeloCenter.Infrastructure.Integrations.Strava.DisabledStravaIntegrationService())
+            new VeloCenter.Infrastructure.Integrations.Strava.DisabledStravaIntegrationService(),
+            new VeloCenter.Infrastructure.Maintenance.NoOpApplicationResetService())
     {
     }
 
     public MainWindowViewModel(
         VeloCenter.Core.Activities.IActivityRepository activityRepository,
         VeloCenter.Core.Activities.IActivityImportService activityImportService,
-        VeloCenter.Core.Integrations.IStravaIntegrationService stravaIntegrationService)
+        VeloCenter.Core.Integrations.IStravaIntegrationService stravaIntegrationService,
+        VeloCenter.Core.Maintenance.IApplicationResetService applicationResetService)
     {
         _activityRepository = activityRepository;
         _activityImportService = activityImportService;
         _stravaIntegrationService = stravaIntegrationService;
+        _applicationResetService = applicationResetService;
         _importViewModel = new ImportViewModel();
         _settingsViewModel = new SettingsViewModel();
 
@@ -87,7 +92,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         var settingsNavigationItem = new NavigationItemViewModel(
             "settings",
             "Ustawienia",
-            "Konfiguracja projektu, storage i preferencji interfejsu.",
+            "Reset danych lokalnych, integracji i stanu aplikacji.",
             "M6,7 H18 M6,12 H18 M6,17 H18 M9,7 A2,2 0 1 0 9.1,7 M15,12 A2,2 0 1 0 15.1,12 M11,17 A2,2 0 1 0 11.1,17");
 
         NavigationItems =
@@ -100,7 +105,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         ];
 
         SelectSectionCommand = new CommunityToolkit.Mvvm.Input.RelayCommand<NavigationItemViewModel?>(SelectSection);
-        SyncCommand = new CommunityToolkit.Mvvm.Input.RelayCommand(RunToolbarSync);
+        SyncCommand = new CommunityToolkit.Mvvm.Input.RelayCommand(() => _ = RunToolbarSyncAsync());
 
         foreach (var navigationItem in NavigationItems)
         {
@@ -359,6 +364,7 @@ public sealed class MainWindowViewModel : ViewModelBase
 
             var state = await _stravaIntegrationService.ConnectAsync();
             _importViewModel.SetStravaState(state);
+            _importViewModel.ClearStravaCredentials();
             await AdvanceTaskStepAsync(PipelineTaskKind.Sync, "Autoryzacja Stravy zakonczona i zapisana lokalnie.", 100, 160);
 
             _ = ShowToastAsync("Polaczono ze Strava", "#20342C", "#F3FFF8");
@@ -388,6 +394,127 @@ public sealed class MainWindowViewModel : ViewModelBase
         {
             _importViewModel.SetStravaBusyState(false);
             RefreshStravaState();
+            await Task.Delay(200);
+            SetCurrentPipelineTask(PipelineTaskKind.None);
+            SetTaskMonitorIdle("Loader uruchomi sie przy imporcie pliku albo synchronizacji Strava.");
+        }
+    }
+
+    public async Task DisconnectStravaAsync()
+    {
+        SelectSection(_importNavigationItem);
+
+        if (!TryStartPipelineTask(
+                PipelineTaskKind.Sync,
+                "Rozlaczanie Stravy",
+                "Usuwam lokalna konfiguracje i sesje Stravy.",
+                12))
+        {
+            return;
+        }
+
+        _importViewModel.SetStravaBusyState(true);
+
+        try
+        {
+            await AdvanceTaskStepAsync(PipelineTaskKind.Sync, "Usuwanie lokalnej sesji Stravy.", 48, 120);
+            var state = await _stravaIntegrationService.DisconnectAsync();
+            _importViewModel.SetStravaState(state);
+            _importViewModel.ClearStravaCredentials();
+            await AdvanceTaskStepAsync(PipelineTaskKind.Sync, "Strava zostala rozlaczona.", 100, 120);
+
+            _ = ShowToastAsync("Rozlaczono Strave", "#20342C", "#F3FFF8");
+
+            UpdateStatus(
+                "Done",
+                "Strava zostala rozlaczona.",
+                "Mozesz ponownie wpisac dane aplikacji i podlaczyc konto od nowa.",
+                "#2A1734",
+                "#F7E9FF");
+        }
+        catch (Exception exception)
+        {
+            var message = GetStravaErrorMessage(exception);
+
+            _importViewModel.SetStravaError(message);
+            _ = ShowToastAsync("Nie udalo sie rozlaczyc Stravy", "#4A1D28", "#FFD9E1");
+
+            UpdateStatus(
+                "Error",
+                "Rozlaczenie Stravy nie powiodlo sie.",
+                message,
+                "#4A1D28",
+                "#FFD9E1");
+        }
+        finally
+        {
+            _importViewModel.SetStravaBusyState(false);
+            RefreshStravaState();
+            await Task.Delay(200);
+            SetCurrentPipelineTask(PipelineTaskKind.None);
+            SetTaskMonitorIdle("Loader uruchomi sie przy imporcie pliku albo synchronizacji Strava.");
+        }
+    }
+
+    public async Task RunStravaPrimaryActionAsync()
+    {
+        if (_stravaIntegrationService.GetConnectionState().IsConnected)
+        {
+            await SyncStravaAsync();
+            return;
+        }
+
+        await ConnectStravaAsync();
+
+        if (_stravaIntegrationService.GetConnectionState().IsConnected)
+        {
+            await SyncStravaAsync();
+        }
+    }
+
+    public async Task ResetApplicationAsync()
+    {
+        if (!TryStartPipelineTask(
+                PipelineTaskKind.Maintenance,
+                "Reset aplikacji",
+                "Usuwam lokalna baze, sesje integracji i dane konfiguracyjne.",
+                10))
+        {
+            return;
+        }
+
+        try
+        {
+            await AdvanceTaskStepAsync(PipelineTaskKind.Maintenance, "Zamykanie lokalnych polaczen i przygotowanie resetu.", 36, 130);
+            _applicationResetService.ResetAllData();
+            _importViewModel.ResetViewState();
+            ReloadActivitySections();
+            RefreshStravaState();
+            SelectSection(_importNavigationItem);
+            await AdvanceTaskStepAsync(PipelineTaskKind.Maintenance, "Aplikacja zostala wyzerowana do pustego stanu.", 100, 150);
+
+            _ = ShowToastAsync("Wyczyszczono wszystkie dane aplikacji", "#20342C", "#F3FFF8");
+
+            UpdateStatus(
+                "Done",
+                "Aplikacja zostala calkowicie wyczyszczona.",
+                "Baza, sesje integracji i lokalny stan zostaly usuniete.",
+                "#2A1734",
+                "#F7E9FF");
+        }
+        catch (Exception exception)
+        {
+            _ = ShowToastAsync("Nie udalo sie wyczyscic aplikacji", "#4A1D28", "#FFD9E1");
+
+            UpdateStatus(
+                "Error",
+                "Reset aplikacji nie powiodl sie.",
+                exception.Message,
+                "#4A1D28",
+                "#FFD9E1");
+        }
+        finally
+        {
             await Task.Delay(200);
             SetCurrentPipelineTask(PipelineTaskKind.None);
             SetTaskMonitorIdle("Loader uruchomi sie przy imporcie pliku albo synchronizacji Strava.");
@@ -527,12 +654,18 @@ public sealed class MainWindowViewModel : ViewModelBase
             "#C9C3FF");
     }
 
-    private void RunToolbarSync()
+    private async Task RunToolbarSyncAsync()
     {
+        if (_stravaIntegrationService.GetConnectionState().IsConnected)
+        {
+            await SyncStravaAsync();
+            return;
+        }
+
         UpdateStatus(
             "Manual",
-            "Przycisk odswiezania jest chwilowo odlaczony od dolnego loadera.",
-            "Loader reaguje teraz na import lokalnego pliku i synchronizacje Strava.",
+            "Brak polaczonych integracji do odswiezenia.",
+            "Polacz Strave w sekcji integracji, aby przycisk odswiezania uruchamial synchronizacje.",
             "#301A44",
             "#F1B2FF");
     }
@@ -664,9 +797,12 @@ public sealed class MainWindowViewModel : ViewModelBase
     {
         var startProgress = TaskProgressValue;
         var steps = Math.Max(1, delayMs / 24);
-        var title = taskKind is PipelineTaskKind.Sync
-            ? "Synchronizacja ze Strava"
-            : "Import pliku treningowego";
+        var title = taskKind switch
+        {
+            PipelineTaskKind.Sync => "Synchronizacja ze Strava",
+            PipelineTaskKind.Maintenance => "Reset aplikacji",
+            _ => "Import pliku treningowego",
+        };
 
         for (var step = 1; step <= steps; step++)
         {

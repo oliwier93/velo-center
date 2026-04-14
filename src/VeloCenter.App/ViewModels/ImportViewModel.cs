@@ -5,10 +5,10 @@ public sealed class ImportViewModel : ViewModelBase
     private string _importStatus = string.Empty;
     private string _stravaStatusTitle = "Strava nie jest jeszcze polaczona.";
     private string _stravaStatusDetail = "Wpisz dane swojej aplikacji Strava i polacz konto przez przegladarke.";
-    private string _stravaConnectLabel = "Polacz Strave";
-    private string _stravaSyncLabel = "Synchronizuj";
     private string _stravaClientId = string.Empty;
     private string _stravaClientSecret = string.Empty;
+    private bool _isStravaConfigured;
+    private bool _isStravaConnected;
     private bool _canSyncStrava;
     private bool _isStravaBusy;
 
@@ -36,6 +36,7 @@ public sealed class ImportViewModel : ViewModelBase
             if (SetProperty(ref _stravaClientId, value))
             {
                 OnPropertyChanged(nameof(CanSaveStravaConfigurationAction));
+                OnPropertyChanged(nameof(CanPrimaryStravaAction));
             }
         }
     }
@@ -48,6 +49,7 @@ public sealed class ImportViewModel : ViewModelBase
             if (SetProperty(ref _stravaClientSecret, value))
             {
                 OnPropertyChanged(nameof(CanSaveStravaConfigurationAction));
+                OnPropertyChanged(nameof(CanPrimaryStravaAction));
             }
         }
     }
@@ -62,18 +64,6 @@ public sealed class ImportViewModel : ViewModelBase
     {
         get => _stravaStatusDetail;
         private set => SetProperty(ref _stravaStatusDetail, value);
-    }
-
-    public string StravaConnectLabel
-    {
-        get => _stravaConnectLabel;
-        private set => SetProperty(ref _stravaConnectLabel, value);
-    }
-
-    public string StravaSyncLabel
-    {
-        get => _stravaSyncLabel;
-        private set => SetProperty(ref _stravaSyncLabel, value);
     }
 
     public bool CanSyncStrava
@@ -106,10 +96,60 @@ public sealed class ImportViewModel : ViewModelBase
 
     public bool CanSyncStravaAction => CanSyncStrava && !IsStravaBusy;
 
+    public bool IsStravaConnected
+    {
+        get => _isStravaConnected;
+        private set
+        {
+            if (SetProperty(ref _isStravaConnected, value))
+            {
+                OnPropertyChanged(nameof(ShowStravaCredentials));
+                OnPropertyChanged(nameof(ShowStravaDisconnectAction));
+                OnPropertyChanged(nameof(StravaPrimaryActionLabel));
+                OnPropertyChanged(nameof(CanPrimaryStravaAction));
+            }
+        }
+    }
+
+    public bool IsStravaConfigured
+    {
+        get => _isStravaConfigured;
+        private set
+        {
+            if (SetProperty(ref _isStravaConfigured, value))
+            {
+                OnPropertyChanged(nameof(CanPrimaryStravaAction));
+            }
+        }
+    }
+
+    public bool ShowStravaCredentials => !IsStravaConnected;
+
+    public bool ShowStravaDisconnectAction => IsStravaConnected && !IsStravaBusy;
+
+    public string StravaPrimaryActionLabel => IsStravaConnected ? "Odswiez" : "Synchronizuj";
+
+    public bool CanPrimaryStravaAction =>
+        IsStravaConnected
+            ? !IsStravaBusy
+            : CanSaveStravaConfigurationAction || (IsStravaConfigured && !IsStravaBusy);
+
     public bool CanSaveStravaConfigurationAction =>
         !IsStravaBusy &&
         !string.IsNullOrWhiteSpace(StravaClientId) &&
         !string.IsNullOrWhiteSpace(StravaClientSecret);
+
+    public void ClearStravaCredentials()
+    {
+        StravaClientId = string.Empty;
+        StravaClientSecret = string.Empty;
+    }
+
+    public void ResetViewState()
+    {
+        ImportStatus = string.Empty;
+        ClearStravaCredentials();
+    }
 
     public void SetImportQueued(string filePath)
     {
@@ -134,12 +174,13 @@ public sealed class ImportViewModel : ViewModelBase
 
     public void SetStravaState(VeloCenter.Core.Integrations.StravaConnectionState state)
     {
+        IsStravaConfigured = state.IsConfigured;
+        IsStravaConnected = state.IsConnected;
+
         if (!state.IsConfigured)
         {
             StravaStatusTitle = "Dodaj dane swojej aplikacji Strava";
             StravaStatusDetail = "Wklej Client ID i Client Secret, a potem polacz konto w przegladarce. Callback domain ustaw na 127.0.0.1.";
-            StravaConnectLabel = "Polacz Strave";
-            StravaSyncLabel = "Synchronizuj";
             CanSyncStrava = false;
             return;
         }
@@ -148,8 +189,6 @@ public sealed class ImportViewModel : ViewModelBase
         {
             StravaStatusTitle = "Strava gotowa do polaczenia";
             StravaStatusDetail = "Dane aplikacji zapisane. Kliknij polaczenie, zeby otworzyc przegladarke i zatwierdzic dostep.";
-            StravaConnectLabel = "Polacz Strave";
-            StravaSyncLabel = "Synchronizuj";
             CanSyncStrava = false;
             return;
         }
@@ -160,16 +199,15 @@ public sealed class ImportViewModel : ViewModelBase
         StravaStatusDetail = state.LastSyncedAt is null
             ? "Konto jest gotowe. Pierwsza synchronizacja pobierze tylko aktywnosci rowerowe outdoor."
             : $"Ostatnia synchronizacja roweru outdoor: {state.LastSyncedAt.Value.ToLocalTime():dd.MM.yyyy HH:mm}";
-        StravaConnectLabel = "Polacz ponownie";
-        StravaSyncLabel = "Synchronizuj";
         CanSyncStrava = true;
     }
 
     public void SetStravaBusyState(bool isBusy)
     {
         IsStravaBusy = isBusy;
-        StravaConnectLabel = isBusy ? "Laczenie..." : StravaConnectLabel;
-        StravaSyncLabel = isBusy ? "Synchronizacja..." : "Synchronizuj";
+        OnPropertyChanged(nameof(ShowStravaDisconnectAction));
+        OnPropertyChanged(nameof(StravaPrimaryActionLabel));
+        OnPropertyChanged(nameof(CanPrimaryStravaAction));
     }
 
     public void SetStravaSyncProgress(VeloCenter.Core.Integrations.StravaSyncProgress progress)
@@ -182,7 +220,5 @@ public sealed class ImportViewModel : ViewModelBase
     {
         StravaStatusTitle = "Problem ze Strava";
         StravaStatusDetail = message;
-        StravaConnectLabel = "Polacz Strave";
-        StravaSyncLabel = "Synchronizuj";
     }
 }

@@ -7,6 +7,7 @@ using VeloCenter.App.ViewModels;
 using VeloCenter.App.Views;
 using VeloCenter.Infrastructure.Activities;
 using VeloCenter.Infrastructure.Integrations.Strava;
+using VeloCenter.Infrastructure.Maintenance;
 using VeloCenter.Infrastructure.Persistence;
 
 namespace VeloCenter.App;
@@ -27,10 +28,11 @@ public partial class App : Application
             var activityRepository = new SqliteActivityRepository(databasePath);
             var activityImportService = new LocalFileActivityImportService(databasePath);
             var stravaIntegrationService = new StravaIntegrationService(databasePath);
+            var applicationResetService = new LocalApplicationResetService(databasePath);
 
             desktop.MainWindow = new MainWindow
             {
-                DataContext = new MainWindowViewModel(activityRepository, activityImportService, stravaIntegrationService),
+                DataContext = new MainWindowViewModel(activityRepository, activityImportService, stravaIntegrationService, applicationResetService),
             };
         }
 

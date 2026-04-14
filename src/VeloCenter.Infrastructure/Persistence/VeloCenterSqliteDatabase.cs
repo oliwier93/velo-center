@@ -8,6 +8,25 @@ public static class VeloCenterSqliteDatabase
 {
     internal const string BaselineMigrationId = "20260414093000_InitialCreate";
 
+    public static string GetApplicationDataDirectory()
+    {
+        try
+        {
+            var localApplicationDataRoot = Environment.GetEnvironmentVariable("LOCALAPPDATA");
+
+            if (string.IsNullOrWhiteSpace(localApplicationDataRoot))
+            {
+                localApplicationDataRoot = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            }
+
+            return EnsureDirectoryExists(Path.Combine(localApplicationDataRoot, "VeloCenter"));
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return EnsureDirectoryExists(Path.Combine(Path.GetTempPath(), "VeloCenter"));
+        }
+    }
+
     public static string GetDefaultDatabasePath()
     {
         var configuredPath = Environment.GetEnvironmentVariable("VELOCENTER_DB_PATH");
@@ -17,24 +36,7 @@ public static class VeloCenterSqliteDatabase
             return EnsureDatabaseDirectory(configuredPath);
         }
 
-        try
-        {
-            var localApplicationDataPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "VeloCenter",
-                "velo-center.db");
-
-            return EnsureDatabaseDirectory(localApplicationDataPath);
-        }
-        catch (UnauthorizedAccessException)
-        {
-            var tempDatabasePath = Path.Combine(
-                Path.GetTempPath(),
-                "VeloCenter",
-                "velo-center.db");
-
-            return EnsureDatabaseDirectory(tempDatabasePath);
-        }
+        return Path.Combine(GetApplicationDataDirectory(), "velo-center.db");
     }
 
     public static void Initialize(string databasePath, bool seedDemoData = false)
@@ -135,10 +137,17 @@ public static class VeloCenterSqliteDatabase
 
         if (!string.IsNullOrWhiteSpace(databaseDirectory))
         {
-            Directory.CreateDirectory(databaseDirectory);
+            EnsureDirectoryExists(databaseDirectory);
         }
 
         return databasePath;
+    }
+
+    private static string EnsureDirectoryExists(string directoryPath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(directoryPath);
+        Directory.CreateDirectory(directoryPath);
+        return directoryPath;
     }
 
     private static IEnumerable<ActivityRecord> CreateSeedActivities()

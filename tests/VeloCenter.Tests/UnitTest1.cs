@@ -175,4 +175,67 @@ public sealed class UnitTest1
 
         Assert.Equal(expected, isAllowed);
     }
+
+    [Fact]
+    public void LocalApplicationResetService_RemovesDatabaseAndStravaFilesAndCreatesCleanDatabase()
+    {
+        var localAppData = Path.Combine(Path.GetTempPath(), "velo-center-reset-tests", Guid.NewGuid().ToString("N"), "appdata");
+        var databasePath = Path.Combine(localAppData, "VeloCenter", "velo-center.db");
+        var sessionPath = Path.Combine(localAppData, "VeloCenter", "strava-session.json");
+        var configPath = Path.Combine(localAppData, "VeloCenter", "strava-config.json");
+
+        try
+        {
+            Environment.SetEnvironmentVariable("LOCALAPPDATA", localAppData);
+            Directory.CreateDirectory(Path.GetDirectoryName(databasePath)!);
+            VeloCenter.Infrastructure.Persistence.VeloCenterSqliteDatabase.Initialize(databasePath, seedDemoData: false);
+            File.WriteAllText(sessionPath, "{\"token\":\"sample\"}");
+            File.WriteAllText(configPath, "{\"clientId\":\"1\"}");
+
+            var importService = new VeloCenter.Infrastructure.Activities.LocalFileActivityImportService(databasePath);
+            var repository = new VeloCenter.Infrastructure.Activities.SqliteActivityRepository(databasePath);
+            var gpxPath = Path.Combine(localAppData, "sample.gpx");
+
+            File.WriteAllText(
+                gpxPath,
+                """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <gpx version="1.1" creator="velo-center-tests" xmlns="http://www.topografix.com/GPX/1/1">
+                  <trk>
+                    <name>Reset Ride</name>
+                    <trkseg>
+                      <trkpt lat="52.2297" lon="21.0122">
+                        <time>2026-04-14T06:00:00Z</time>
+                      </trkpt>
+                      <trkpt lat="52.2307" lon="21.0222">
+                        <time>2026-04-14T06:30:00Z</time>
+                      </trkpt>
+                    </trkseg>
+                  </trk>
+                </gpx>
+                """);
+
+            importService.ImportLocalFile(gpxPath);
+
+            var resetService = new VeloCenter.Infrastructure.Maintenance.LocalApplicationResetService(databasePath);
+            resetService.ResetAllData();
+
+            var activities = repository.GetRecentActivities();
+
+            Assert.True(File.Exists(databasePath));
+            Assert.Empty(activities);
+            Assert.False(File.Exists(sessionPath));
+            Assert.False(File.Exists(configPath));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("LOCALAPPDATA", null);
+            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+
+            if (Directory.Exists(localAppData))
+            {
+                Directory.Delete(localAppData, recursive: true);
+            }
+        }
+    }
 }

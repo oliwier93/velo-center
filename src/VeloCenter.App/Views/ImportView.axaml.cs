@@ -47,14 +47,14 @@ public partial class ImportView : UserControl
         await viewModel.StartFileImportAsync(filePath);
     }
 
-    private async void ConnectStravaClick(object? sender, RoutedEventArgs e)
+    private async void DisconnectStravaClick(object? sender, RoutedEventArgs e)
     {
         if (TopLevel.GetTopLevel(this) is not Window { DataContext: MainWindowViewModel viewModel })
         {
             return;
         }
 
-        await viewModel.ConnectStravaAsync();
+        await viewModel.DisconnectStravaAsync();
     }
 
     private async void SyncStravaClick(object? sender, RoutedEventArgs e)
@@ -64,6 +64,6 @@ public partial class ImportView : UserControl
             return;
         }
 
-        await viewModel.SyncStravaAsync();
+        await viewModel.RunStravaPrimaryActionAsync();
     }
 }

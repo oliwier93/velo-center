@@ -8,6 +8,8 @@ public interface IStravaIntegrationService
         StravaManualConfiguration configuration,
         CancellationToken cancellationToken = default);
 
+    Task<StravaConnectionState> DisconnectAsync(CancellationToken cancellationToken = default);
+
     Task<StravaConnectionState> ConnectAsync(CancellationToken cancellationToken = default);
 
     Task<StravaSyncResult> SyncActivitiesAsync(

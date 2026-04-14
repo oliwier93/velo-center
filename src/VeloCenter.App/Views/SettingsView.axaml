@@ -3,87 +3,48 @@
              xmlns:vm="using:VeloCenter.App.ViewModels"
              x:Class="VeloCenter.App.Views.SettingsView"
              x:DataType="vm:SettingsViewModel">
-    <Grid ColumnDefinitions="*,*"
-          ColumnSpacing="24">
-        <Border Padding="22"
-                CornerRadius="24"
-                Background="{DynamicResource PanelStrongBackgroundBrush}"
-                BorderBrush="{DynamicResource PanelStrokeBrush}"
-                BorderThickness="1">
-            <StackPanel Spacing="16">
+    <Border MaxWidth="640"
+            Padding="24"
+            CornerRadius="24"
+            Background="{DynamicResource PanelStrongBackgroundBrush}"
+            BorderBrush="{DynamicResource PanelStrokeBrush}"
+            BorderThickness="1">
+        <StackPanel Spacing="18">
+            <StackPanel Spacing="6">
                 <TextBlock FontSize="24"
                            FontWeight="Bold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
-                           Text="Workspace" />
-
-                <ItemsControl ItemsSource="{Binding Workspace}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:InfoCardViewModel">
-                            <Border Margin="0,0,0,12"
-                                    Padding="16"
-                                    CornerRadius="18"
-                                    Background="{DynamicResource PanelBackgroundBrush}"
-                                    BorderBrush="{DynamicResource PanelStrokeBrush}"
-                                    BorderThickness="1">
-                                <StackPanel Spacing="6">
-                                    <TextBlock FontSize="12"
-                                               Foreground="{DynamicResource TextSubtleBrush}"
-                                               Text="{Binding Title}" />
-                                    <TextBlock FontSize="18"
-                                               FontWeight="SemiBold"
-                                               Foreground="{DynamicResource TextPrimaryBrush}"
-                                               Text="{Binding Value}" />
-                                    <TextBlock FontSize="13"
-                                               Foreground="{DynamicResource TextMutedBrush}"
-                                               Text="{Binding Description}"
-                                               TextWrapping="Wrap" />
-                                </StackPanel>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                           Text="Wyczysc aplikacje" />
+                <TextBlock FontSize="13"
+                           Foreground="{DynamicResource TextMutedBrush}"
+                           Text="Usuwa cala lokalna baze SQLite, konfiguracje integracji, sesje Stravy oraz bieżące preferencje aplikacji."
+                           TextWrapping="Wrap" />
             </StackPanel>
-        </Border>
 
-        <Border Grid.Column="1"
-                Padding="22"
-                CornerRadius="24"
-                Background="{DynamicResource PanelStrongBackgroundBrush}"
-                BorderBrush="{DynamicResource PanelStrokeBrush}"
-                BorderThickness="1">
-            <StackPanel Spacing="16">
-                <TextBlock FontSize="24"
-                           FontWeight="Bold"
-                           Foreground="{DynamicResource TextPrimaryBrush}"
-                           Text="Preferencje" />
+            <Border Padding="16"
+                    CornerRadius="18"
+                    Background="{DynamicResource PanelBackgroundBrush}"
+                    BorderBrush="{DynamicResource PanelStrokeBrush}"
+                    BorderThickness="1">
+                <TextBlock FontSize="13"
+                           Foreground="{DynamicResource TextMutedBrush}"
+                           Text="To reset nieodwracalny. Po wykonaniu aplikacja wraca do pustego stanu startowego."
+                           TextWrapping="Wrap" />
+            </Border>
 
-                <ItemsControl ItemsSource="{Binding Preferences}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:InfoCardViewModel">
-                            <Border Margin="0,0,0,12"
-                                    Padding="16"
-                                    CornerRadius="18"
-                                    Background="{DynamicResource PanelBackgroundBrush}"
-                                    BorderBrush="{DynamicResource PanelStrokeBrush}"
-                                    BorderThickness="1">
-                                <StackPanel Spacing="6">
-                                    <TextBlock FontSize="12"
-                                               Foreground="{DynamicResource TextSubtleBrush}"
-                                               Text="{Binding Title}" />
-                                    <TextBlock FontSize="18"
-                                               FontWeight="SemiBold"
-                                               Foreground="{DynamicResource TextPrimaryBrush}"
-                                               Text="{Binding Value}" />
-                                    <TextBlock FontSize="13"
-                                               Foreground="{DynamicResource TextMutedBrush}"
-                                               Text="{Binding Description}"
-                                               TextWrapping="Wrap" />
-                                </StackPanel>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </StackPanel>
-        </Border>
-    </Grid>
+            <Button Click="ResetApplicationClick"
+                    HorizontalAlignment="Left">
+                <Border Padding="18,14"
+                        CornerRadius="20"
+                        Background="#6B1F2E"
+                        BorderBrush="#A8455B"
+                        BorderThickness="1">
+                    <TextBlock FontSize="16"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               Text="Wyczysc wszystko" />
+                </Border>
+            </Button>
+        </StackPanel>
+    </Border>
 </UserControl>

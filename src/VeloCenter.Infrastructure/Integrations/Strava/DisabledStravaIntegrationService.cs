@@ -19,6 +19,10 @@ public sealed class DisabledStravaIntegrationService : IStravaIntegrationService
         Task.FromException<StravaConnectionState>(
             new InvalidOperationException("Konfiguracja Stravy nie jest dostepna w tym trybie aplikacji."));
 
+    public Task<StravaConnectionState> DisconnectAsync(CancellationToken cancellationToken = default) =>
+        Task.FromException<StravaConnectionState>(
+            new InvalidOperationException("Konfiguracja Stravy nie jest dostepna w tym trybie aplikacji."));
+
     public Task<StravaConnectionState> ConnectAsync(CancellationToken cancellationToken = default) =>
         Task.FromException<StravaConnectionState>(
             new InvalidOperationException("Skonfiguruj lokalne dane swojej aplikacji Strava."));

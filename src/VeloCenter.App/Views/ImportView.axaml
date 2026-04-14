@@ -40,6 +40,108 @@
                     <TextBlock FontSize="22"
                                FontWeight="Bold"
                                Foreground="{DynamicResource TextPrimaryBrush}"
+                               Text="Strava" />
+                    <TextBlock FontSize="12"
+                               Foreground="{DynamicResource TextSubtleBrush}"
+                               Text="Tylko aktywnosci rowerowe outdoor." />
+                </StackPanel>
+
+                <TextBlock FontSize="13"
+                           Foreground="{DynamicResource TextMutedBrush}"
+                           Text="Wklej Client ID i Client Secret swojej aplikacji Strava. Po kliknieciu otworzy sie przegladarka z autoryzacja."
+                           TextWrapping="Wrap" />
+
+                <Grid ColumnDefinitions="1*,3*"
+                      RowDefinitions="Auto"
+                      ColumnSpacing="10"
+                      RowSpacing="10"
+                      IsVisible="{Binding ShowStravaCredentials}">
+                    <StackPanel Grid.Row="0"
+                                Grid.Column="0"
+                                Spacing="4">
+                        <TextBlock FontSize="12"
+                                   Foreground="{DynamicResource TextSubtleBrush}"
+                                   Text="Client ID" />
+                        <TextBox Text="{Binding StravaClientId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 PlaceholderText="np. 162592" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="0"
+                                Grid.Column="1"
+                                Spacing="4">
+                        <TextBlock FontSize="12"
+                                   Foreground="{DynamicResource TextSubtleBrush}"
+                                   Text="Client Secret" />
+                        <TextBox Text="{Binding StravaClientSecret, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 PlaceholderText="Wklej client secret" />
+                    </StackPanel>
+                </Grid>
+
+                <Border Padding="14"
+                        CornerRadius="18"
+                        Background="{DynamicResource PanelBackgroundBrush}"
+                        BorderBrush="{DynamicResource PanelStrokeBrush}"
+                        BorderThickness="1">
+                    <StackPanel Spacing="4">
+                        <TextBlock FontSize="15"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   Text="{Binding StravaStatusTitle}"
+                                   TextWrapping="Wrap" />
+                        <TextBlock FontSize="13"
+                                   Foreground="{DynamicResource TextMutedBrush}"
+                                   Text="{Binding StravaStatusDetail}"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <StackPanel Orientation="Horizontal"
+                            Spacing="10">
+                    <Button Classes="integration-action"
+                            Click="SyncStravaClick"
+                            HorizontalAlignment="Left"
+                            IsEnabled="{Binding CanPrimaryStravaAction}">
+                        <Border Padding="18,14"
+                                CornerRadius="20"
+                                Background="{DynamicResource AccentStrongBrush}">
+                            <TextBlock FontSize="17"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       Text="{Binding StravaPrimaryActionLabel}" />
+                        </Border>
+                    </Button>
+
+                    <Button Classes="integration-action"
+                            Click="DisconnectStravaClick"
+                            HorizontalAlignment="Left"
+                            IsVisible="{Binding ShowStravaDisconnectAction}"
+                            IsEnabled="{Binding CanConnectStrava}">
+                        <Border Padding="18,14"
+                                CornerRadius="20"
+                                Background="#182A1734"
+                                BorderBrush="{DynamicResource PanelStrokeBrush}"
+                                BorderThickness="1">
+                            <TextBlock FontSize="17"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       Text="Rozlacz" />
+                        </Border>
+                    </Button>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Column="1"
+                Padding="20"
+                CornerRadius="24"
+                Background="{DynamicResource PanelStrongBackgroundBrush}"
+                BorderBrush="{DynamicResource PanelStrokeBrush}"
+                BorderThickness="1">
+            <StackPanel Spacing="14">
+                <StackPanel Spacing="4">
+                    <TextBlock FontSize="22"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
                                Text="Pliki lokalne" />
                     <TextBlock FontSize="12"
                                Foreground="{DynamicResource TextSubtleBrush}"
@@ -69,106 +171,6 @@
                            Text="{Binding ImportStatus}"
                            IsVisible="{Binding HasImportStatus}"
                            TextWrapping="Wrap" />
-            </StackPanel>
-        </Border>
-
-        <Border Grid.Column="1"
-                Padding="20"
-                CornerRadius="24"
-                Background="{DynamicResource PanelStrongBackgroundBrush}"
-                BorderBrush="{DynamicResource PanelStrokeBrush}"
-                BorderThickness="1">
-            <StackPanel Spacing="14">
-                <StackPanel Spacing="4">
-                    <TextBlock FontSize="22"
-                               FontWeight="Bold"
-                               Foreground="{DynamicResource TextPrimaryBrush}"
-                               Text="Strava" />
-                    <TextBlock FontSize="12"
-                               Foreground="{DynamicResource TextSubtleBrush}"
-                               Text="Tylko aktywnosci rowerowe outdoor." />
-                </StackPanel>
-
-                <TextBlock FontSize="13"
-                           Foreground="{DynamicResource TextMutedBrush}"
-                           Text="Wklej Client ID i Client Secret swojej aplikacji Strava. Po kliknieciu otworzy sie przegladarka z autoryzacja."
-                           TextWrapping="Wrap" />
-
-                <Grid ColumnDefinitions="*,*"
-                      RowDefinitions="Auto"
-                      ColumnSpacing="10"
-                      RowSpacing="10">
-                    <StackPanel Grid.Row="0"
-                                Grid.Column="0"
-                                Spacing="4">
-                        <TextBlock FontSize="12"
-                                   Foreground="{DynamicResource TextSubtleBrush}"
-                                   Text="Client ID" />
-                        <TextBox Text="{Binding StravaClientId, Mode=TwoWay}"
-                                 PlaceholderText="np. 162592" />
-                    </StackPanel>
-
-                    <StackPanel Grid.Row="0"
-                                Grid.Column="1"
-                                Spacing="4">
-                        <TextBlock FontSize="12"
-                                   Foreground="{DynamicResource TextSubtleBrush}"
-                                   Text="Client Secret" />
-                        <TextBox Text="{Binding StravaClientSecret, Mode=TwoWay}"
-                                 PlaceholderText="Wklej client secret" />
-                    </StackPanel>
-                </Grid>
-
-                <Border Padding="14"
-                        CornerRadius="18"
-                        Background="{DynamicResource PanelBackgroundBrush}"
-                        BorderBrush="{DynamicResource PanelStrokeBrush}"
-                        BorderThickness="1">
-                    <StackPanel Spacing="4">
-                        <TextBlock FontSize="15"
-                                   FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TextPrimaryBrush}"
-                                   Text="{Binding StravaStatusTitle}"
-                                   TextWrapping="Wrap" />
-                        <TextBlock FontSize="13"
-                                   Foreground="{DynamicResource TextMutedBrush}"
-                                   Text="{Binding StravaStatusDetail}"
-                                   TextWrapping="Wrap" />
-                    </StackPanel>
-                </Border>
-
-                <StackPanel Orientation="Horizontal"
-                            Spacing="10">
-                    <Button Classes="integration-action"
-                            Click="ConnectStravaClick"
-                            HorizontalAlignment="Left"
-                            IsEnabled="{Binding CanSaveStravaConfigurationAction}">
-                        <Border Padding="18,14"
-                                CornerRadius="20"
-                                Background="{DynamicResource AccentStrongBrush}">
-                            <TextBlock FontSize="17"
-                                       FontWeight="SemiBold"
-                                       Foreground="{DynamicResource TextPrimaryBrush}"
-                                       Text="{Binding StravaConnectLabel}" />
-                        </Border>
-                    </Button>
-
-                    <Button Classes="integration-action"
-                            Click="SyncStravaClick"
-                            HorizontalAlignment="Left"
-                            IsEnabled="{Binding CanSyncStravaAction}">
-                        <Border Padding="18,14"
-                                CornerRadius="20"
-                                Background="#182A1734"
-                                BorderBrush="{DynamicResource PanelStrokeBrush}"
-                                BorderThickness="1">
-                            <TextBlock FontSize="17"
-                                       FontWeight="SemiBold"
-                                       Foreground="{DynamicResource TextPrimaryBrush}"
-                                       Text="{Binding StravaSyncLabel}" />
-                        </Border>
-                    </Button>
-                </StackPanel>
             </StackPanel>
         </Border>
     </Grid>

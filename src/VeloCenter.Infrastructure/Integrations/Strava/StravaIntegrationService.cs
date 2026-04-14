@@ -137,6 +137,16 @@ public sealed class StravaIntegrationService(string databasePath) : IStravaInteg
         return GetConnectionState();
     }
 
+    public Task<StravaConnectionState> DisconnectAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        DeleteSession();
+        DeleteConfiguration();
+
+        return Task.FromResult(GetConnectionState());
+    }
+
     public async Task<StravaSyncResult> SyncActivitiesAsync(
         IProgress<StravaSyncProgress>? progress = null,
         CancellationToken cancellationToken = default)
@@ -465,6 +475,14 @@ public sealed class StravaIntegrationService(string databasePath) : IStravaInteg
         File.WriteAllText(_configPath, json);
     }
 
+    private void DeleteConfiguration()
+    {
+        if (File.Exists(_configPath))
+        {
+            File.Delete(_configPath);
+        }
+    }
+
     private StravaSession? LoadSession()
     {
         if (!File.Exists(_sessionPath))
@@ -535,20 +553,12 @@ public sealed class StravaIntegrationService(string databasePath) : IStravaInteg
 
     private static string GetSessionPath()
     {
-        var baseDirectory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "VeloCenter");
-
-        return Path.Combine(baseDirectory, "strava-session.json");
+        return Path.Combine(VeloCenterSqliteDatabase.GetApplicationDataDirectory(), "strava-session.json");
     }
 
     private static string GetConfigurationPath()
     {
-        var baseDirectory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "VeloCenter");
-
-        return Path.Combine(baseDirectory, "strava-config.json");
+        return Path.Combine(VeloCenterSqliteDatabase.GetApplicationDataDirectory(), "strava-config.json");
     }
 
     private static bool TryGetThrottleDelay(HttpResponseHeaders headers, out TimeSpan delay)
