@@ -8,6 +8,10 @@ internal sealed class ActivityRecord
 
     public ActivitySource Source { get; set; }
 
+    public string? SourceActivityId { get; set; }
+
+    public string? ImportFingerprint { get; set; }
+
     public string Title { get; set; } = string.Empty;
 
     public DateTimeOffset StartTime { get; set; }
@@ -15,4 +19,8 @@ internal sealed class ActivityRecord
     public double DistanceKm { get; set; }
 
     public int DurationSeconds { get; set; }
+
+    public DateTimeOffset? ImportedAt { get; set; }
+
+    public DateTimeOffset? LastUpdatedAt { get; set; }
 }

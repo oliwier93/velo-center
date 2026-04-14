@@ -1,10 +1,13 @@
 using Microsoft.EntityFrameworkCore;
+using System.Data.Common;
 using VeloCenter.Core.Activities;
 
 namespace VeloCenter.Infrastructure.Persistence;
 
 public static class VeloCenterSqliteDatabase
 {
+    internal const string BaselineMigrationId = "20260414093000_InitialCreate";
+
     public static string GetDefaultDatabasePath()
     {
         var configuredPath = Environment.GetEnvironmentVariable("VELOCENTER_DB_PATH");
@@ -40,7 +43,8 @@ public static class VeloCenterSqliteDatabase
 
         using var dbContext = new VeloCenterDbContext(dbContextOptions);
 
-        dbContext.Database.EnsureCreated();
+        StampLegacyDatabaseIfNeeded(dbContext);
+        dbContext.Database.Migrate();
 
         if (dbContext.Activities.Any())
         {
@@ -58,6 +62,69 @@ public static class VeloCenterSqliteDatabase
         return new DbContextOptionsBuilder<VeloCenterDbContext>()
             .UseSqlite($"Data Source={databasePath}")
             .Options;
+    }
+
+    private static void StampLegacyDatabaseIfNeeded(VeloCenterDbContext dbContext)
+    {
+        var connection = dbContext.Database.GetDbConnection();
+
+        connection.Open();
+
+        try
+        {
+            if (TableExists(connection, "__EFMigrationsHistory") || !TableExists(connection, "activities"))
+            {
+                return;
+            }
+
+            using var createHistoryCommand = connection.CreateCommand();
+            createHistoryCommand.CommandText =
+                """
+                CREATE TABLE IF NOT EXISTS "__EFMigrationsHistory" (
+                    "MigrationId" TEXT NOT NULL CONSTRAINT "PK___EFMigrationsHistory" PRIMARY KEY,
+                    "ProductVersion" TEXT NOT NULL
+                );
+                """;
+            createHistoryCommand.ExecuteNonQuery();
+
+            using var insertHistoryCommand = connection.CreateCommand();
+            insertHistoryCommand.CommandText =
+                """
+                INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+                VALUES ($migrationId, $productVersion);
+                """;
+
+            AddParameter(insertHistoryCommand, "$migrationId", BaselineMigrationId);
+            AddParameter(insertHistoryCommand, "$productVersion", "10.0.0");
+            insertHistoryCommand.ExecuteNonQuery();
+        }
+        finally
+        {
+            connection.Close();
+        }
+    }
+
+    private static bool TableExists(DbConnection connection, string tableName)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText =
+            """
+            SELECT COUNT(*)
+            FROM sqlite_master
+            WHERE type = 'table' AND name = $tableName;
+            """;
+
+        AddParameter(command, "$tableName", tableName);
+
+        return Convert.ToInt64(command.ExecuteScalar()) > 0;
+    }
+
+    private static void AddParameter(DbCommand command, string name, object value)
+    {
+        var parameter = command.CreateParameter();
+        parameter.ParameterName = name;
+        parameter.Value = value;
+        command.Parameters.Add(parameter);
     }
 
     private static string EnsureDatabaseDirectory(string databasePath)
@@ -84,28 +151,37 @@ public static class VeloCenterSqliteDatabase
             {
                 Id = Guid.Parse("2ec213f8-6c5d-4af1-8821-7df59c2ad8f1"),
                 Source = ActivitySource.FitFile,
+                ImportFingerprint = "fit-seed-2ec213f8-6c5d-4af1-8821-7df59c2ad8f1",
                 Title = "Sweet spot ride",
                 StartTime = today.AddDays(-1).AddHours(6),
                 DistanceKm = 48.6,
                 DurationSeconds = (int)TimeSpan.FromMinutes(101).TotalSeconds,
+                ImportedAt = today,
+                LastUpdatedAt = today,
             },
             new ActivityRecord
             {
                 Id = Guid.Parse("0ea6ec0d-46f8-4ce4-97da-769c9ba93c7d"),
                 Source = ActivitySource.Strava,
+                SourceActivityId = "strava-seed-0ea6ec0d-46f8-4ce4-97da-769c9ba93c7d",
                 Title = "Endurance spin",
                 StartTime = today.AddDays(-3).AddHours(7),
                 DistanceKm = 62.2,
                 DurationSeconds = (int)TimeSpan.FromMinutes(134).TotalSeconds,
+                ImportedAt = today,
+                LastUpdatedAt = today,
             },
             new ActivityRecord
             {
                 Id = Guid.Parse("d6c4e8a6-56ab-4f7f-8a8f-7243d33df11d"),
                 Source = ActivitySource.GpxFile,
+                ImportFingerprint = "gpx-seed-d6c4e8a6-56ab-4f7f-8a8f-7243d33df11d",
                 Title = "Recovery ride",
                 StartTime = today.AddDays(-5).AddHours(18),
                 DistanceKm = 24.8,
                 DurationSeconds = (int)TimeSpan.FromMinutes(55).TotalSeconds,
+                ImportedAt = today,
+                LastUpdatedAt = today,
             },
         ];
     }

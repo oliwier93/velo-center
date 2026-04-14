@@ -43,8 +43,14 @@ public sealed class UnitTest1
 
             var repository = new VeloCenter.Infrastructure.Activities.SqliteActivityRepository(databasePath);
             var activities = repository.GetRecentActivities();
+            using var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={databasePath}");
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "SELECT COUNT(*) FROM \"__EFMigrationsHistory\";";
+            var migrationCount = Convert.ToInt32(command.ExecuteScalar());
 
             Assert.True(File.Exists(databasePath));
+            Assert.Equal(2, migrationCount);
             Assert.Equal(3, activities.Count);
             Assert.Equal("Sweet spot ride", activities[0].Title);
             Assert.Equal("Endurance spin", activities[1].Title);

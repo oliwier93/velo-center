@@ -2,9 +2,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace VeloCenter.Infrastructure.Persistence;
 
-internal sealed class VeloCenterDbContext(DbContextOptions<VeloCenterDbContext> options) : DbContext(options)
+public sealed class VeloCenterDbContext(DbContextOptions<VeloCenterDbContext> options) : DbContext(options)
 {
-    public DbSet<ActivityRecord> Activities => Set<ActivityRecord>();
+    internal DbSet<ActivityRecord> Activities => Set<ActivityRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -12,11 +12,21 @@ internal sealed class VeloCenterDbContext(DbContextOptions<VeloCenterDbContext> 
 
         activity.ToTable("activities");
         activity.HasKey(item => item.Id);
+        activity.Property(item => item.SourceActivityId).HasMaxLength(128);
+        activity.Property(item => item.ImportFingerprint).HasMaxLength(128);
         activity.Property(item => item.Title).HasMaxLength(200).IsRequired();
         activity.Property(item => item.DistanceKm).IsRequired();
         activity.Property(item => item.DurationSeconds).IsRequired();
         activity.Property(item => item.StartTime).IsRequired();
         activity.Property(item => item.Source).IsRequired();
+        activity.Property(item => item.ImportedAt);
+        activity.Property(item => item.LastUpdatedAt);
         activity.HasIndex(item => item.StartTime);
+        activity.HasIndex(item => new { item.Source, item.SourceActivityId })
+            .IsUnique()
+            .HasFilter("\"SourceActivityId\" IS NOT NULL");
+        activity.HasIndex(item => new { item.Source, item.ImportFingerprint })
+            .IsUnique()
+            .HasFilter("\"ImportFingerprint\" IS NOT NULL");
     }
 }
