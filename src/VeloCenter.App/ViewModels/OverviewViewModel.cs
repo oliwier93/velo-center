@@ -29,7 +29,7 @@ public sealed class OverviewViewModel : ViewModelBase
                 : "Baza startuje pusta, wiec od razu widac realny stan aplikacji."),
             new InfoCardViewModel("Pierwszy importer", "FIT albo GPX", HasActivities
                 ? "Lokalny import zapisuje juz dane do SQLite i odswieza widoki."
-                : "Wybierz plik w sekcji importu, aby zapisac pierwsza aktywnosc."),
+                : "Wybierz plik w sekcji integracje, aby zapisac pierwsza aktywnosc."),
             new InfoCardViewModel("Analiza", "Trendy tygodniowe", "Dodaj wykresy objetosci, dystansu i czasu."),
         ];
     }

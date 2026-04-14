@@ -4,7 +4,7 @@
              x:Class="VeloCenter.App.Views.ImportView"
              x:DataType="vm:ImportViewModel">
     <UserControl.Styles>
-        <Style Selector="Button.import-action">
+        <Style Selector="Button.integration-action">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderBrush" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
@@ -12,60 +12,129 @@
             <Setter Property="Padding" Value="0" />
         </Style>
 
-        <Style Selector="Button.import-action:pointerover">
+        <Style Selector="Button.integration-action:pointerover">
             <Setter Property="Opacity" Value="0.93" />
         </Style>
 
-        <Style Selector="Button.import-action:pressed">
+        <Style Selector="Button.integration-action:pressed">
             <Setter Property="Opacity" Value="0.88" />
+        </Style>
+
+        <Style Selector="Button.integration-action:disabled">
+            <Setter Property="Opacity" Value="0.55" />
         </Style>
     </UserControl.Styles>
 
-    <Border Padding="20,18"
-            CornerRadius="24"
-            Background="{DynamicResource PanelStrongBackgroundBrush}"
-            BorderBrush="{DynamicResource PanelStrokeBrush}"
-            BorderThickness="1"
-            HorizontalAlignment="Left"
-            VerticalAlignment="Top">
-        <Grid MaxWidth="560"
-              ColumnDefinitions="*,Auto"
-              RowDefinitions="Auto,Auto"
-              ColumnSpacing="24"
-              RowSpacing="10">
-            <StackPanel Spacing="6">
-                <TextBlock FontSize="24"
-                           FontWeight="Bold"
-                           Foreground="{DynamicResource TextPrimaryBrush}"
-                           Text="Import pliku" />
+    <Grid MaxWidth="940"
+          HorizontalAlignment="Left"
+          VerticalAlignment="Top"
+          ColumnDefinitions="*,*"
+          ColumnSpacing="18">
+        <Border Padding="20"
+                CornerRadius="24"
+                Background="{DynamicResource PanelStrongBackgroundBrush}"
+                BorderBrush="{DynamicResource PanelStrokeBrush}"
+                BorderThickness="1">
+            <StackPanel Spacing="14">
+                <Grid ColumnDefinitions="*,Auto"
+                      ColumnSpacing="12">
+                    <StackPanel Spacing="4">
+                        <TextBlock FontSize="22"
+                                   FontWeight="Bold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   Text="Pliki lokalne" />
+                        <TextBlock FontSize="12"
+                                   Foreground="{DynamicResource TextSubtleBrush}"
+                                   Text="{Binding AcceptedExtensionsLabel}" />
+                    </StackPanel>
 
-                <TextBlock FontSize="12"
-                           Foreground="{DynamicResource TextSubtleBrush}"
-                           Text="{Binding AcceptedExtensionsLabel}" />
+                    <Border Padding="10,6"
+                            CornerRadius="999"
+                            Background="#1623473A"
+                            VerticalAlignment="Top">
+                        <TextBlock FontSize="11"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   Text="Gotowe" />
+                    </Border>
+                </Grid>
+
+                <TextBlock FontSize="13"
+                           Foreground="{DynamicResource TextMutedBrush}"
+                           Text="Importuj pojedyncze pliki treningowe do lokalnej bazy i od razu odswiezaj widoki aplikacji."
+                           TextWrapping="Wrap" />
+
+                <Button Classes="integration-action"
+                        Click="PickFileClick"
+                        HorizontalAlignment="Left">
+                    <Border Padding="18,14"
+                            CornerRadius="20"
+                            Background="{DynamicResource AccentStrongBrush}">
+                        <TextBlock FontSize="17"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   Text="Wybierz plik" />
+                    </Border>
+                </Button>
+
+                <TextBlock FontSize="13"
+                           Foreground="{DynamicResource TextMutedBrush}"
+                           Text="{Binding ImportStatus}"
+                           IsVisible="{Binding HasImportStatus}"
+                           TextWrapping="Wrap" />
             </StackPanel>
+        </Border>
 
-            <Button Classes="import-action"
-                    Grid.Column="1"
-                    Grid.RowSpan="2"
-                    Click="PickFileClick"
-                    HorizontalAlignment="Left"
-                    VerticalAlignment="Center">
-                <Border Padding="18,14"
-                        CornerRadius="20"
-                        Background="{DynamicResource AccentStrongBrush}">
-                    <TextBlock FontSize="17"
-                               FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextPrimaryBrush}"
-                               Text="Wybierz plik" />
-                </Border>
-            </Button>
+        <Border Grid.Column="1"
+                Padding="20"
+                CornerRadius="24"
+                Background="{DynamicResource PanelStrongBackgroundBrush}"
+                BorderBrush="{DynamicResource PanelStrokeBrush}"
+                BorderThickness="1">
+            <StackPanel Spacing="14">
+                <Grid ColumnDefinitions="*,Auto"
+                      ColumnSpacing="12">
+                    <StackPanel Spacing="4">
+                        <TextBlock FontSize="22"
+                                   FontWeight="Bold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   Text="Strava" />
+                        <TextBlock FontSize="12"
+                                   Foreground="{DynamicResource TextSubtleBrush}"
+                                   Text="Pierwsza synchronizacja zewnetrzna trafi tutaj." />
+                    </StackPanel>
 
-            <TextBlock Grid.Row="1"
-                       FontSize="13"
-                       Foreground="{DynamicResource TextMutedBrush}"
-                       Text="{Binding ImportStatus}"
-                       IsVisible="{Binding HasImportStatus}"
-                       TextWrapping="Wrap" />
-        </Grid>
-    </Border>
+                    <Border Padding="10,6"
+                            CornerRadius="999"
+                            Background="#182A1734"
+                            VerticalAlignment="Top">
+                        <TextBlock FontSize="11"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   Text="Wkrotce" />
+                    </Border>
+                </Grid>
+
+                <TextBlock FontSize="13"
+                           Foreground="{DynamicResource TextMutedBrush}"
+                           Text="Po podpieciu konta ta karta przejmie polaczenie, ostatnia synchronizacje i reczne odswiezanie danych."
+                           TextWrapping="Wrap" />
+
+                <Button Classes="integration-action"
+                        HorizontalAlignment="Left"
+                        IsEnabled="False">
+                    <Border Padding="18,14"
+                            CornerRadius="20"
+                            Background="#182A1734"
+                            BorderBrush="{DynamicResource PanelStrokeBrush}"
+                            BorderThickness="1">
+                        <TextBlock FontSize="17"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   Text="Polacz Strave" />
+                    </Border>
+                </Button>
+            </StackPanel>
+        </Border>
+    </Grid>
 </UserControl>

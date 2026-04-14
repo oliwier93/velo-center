@@ -76,9 +76,9 @@ public sealed class MainWindowViewModel : ViewModelBase
             "M5,17 L10,12 L14,14 L19,7 M15,7 H19 V11");
         _importNavigationItem = new NavigationItemViewModel(
             "import",
-            "Import",
-            "Import plikow aktywnosci do lokalnej bazy.",
-            "M12,4 V13 M8,10 L12,14 L16,10 M5,18 H19 V20 H5 Z");
+            "Integracje",
+            "Strava, pliki lokalne i kolejne zrodla danych.",
+            "M7,7 H11 V11 H7 Z M13,13 H17 V17 H13 Z M9,9 L15,15 M15,9 L9,15 M15,5 H19 V9 H15 Z M5,15 H9 V19 H5 Z");
         var settingsNavigationItem = new NavigationItemViewModel(
             "settings",
             "Ustawienia",
@@ -125,7 +125,7 @@ public sealed class MainWindowViewModel : ViewModelBase
             _hasActivities ? "Ready" : "Empty",
             _hasActivities
                 ? "Aplikacja zaladowala aktywnosci z lokalnej bazy."
-                : "Baza jest pusta. Zacznij od wyboru pliku do importu.",
+                : "Baza jest pusta. Zacznij od sekcji integracji i zaimportuj pierwszy plik.",
             _hasActivities
                 ? "Brak zadania w tle."
                 : "Loader pozostaje ukryty, dopoki nie wybierzesz pliku.",
@@ -382,7 +382,7 @@ public sealed class MainWindowViewModel : ViewModelBase
 
         UpdateStatus(
             "Ready",
-            "Sekcja importu czeka na wskazanie lokalnego pliku.",
+            "Sekcja integracji czeka na wskazanie lokalnego pliku.",
             "Dolny loader nie pojawi sie, dopoki nie rozpoczniesz importu.",
             "#241D44",
             "#C9C3FF");
