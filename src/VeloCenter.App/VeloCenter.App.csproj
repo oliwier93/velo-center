@@ -28,7 +28,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\VeloCenter.Core\VeloCenter.Core.csproj" />
-    <ProjectReference Include="..\VeloCenter.Infrastructure\VeloCenter.Infrastructure.csproj" />
+    <ProjectReference Include="..\VeloCenter.Core\VeloCenter.Core.csproj"
+                      SkipGetTargetFrameworkProperties="true" />
+    <ProjectReference Include="..\VeloCenter.Infrastructure\VeloCenter.Infrastructure.csproj"
+                      SkipGetTargetFrameworkProperties="true" />
   </ItemGroup>
 </Project>

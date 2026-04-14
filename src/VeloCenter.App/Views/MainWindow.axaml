@@ -40,12 +40,15 @@
 
         <Style Selector="Button.toolbar-button">
             <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="16" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
         </Style>
 
         <Style Selector="Button.toolbar-button:pointerover">
+            <Setter Property="Background" Value="#121A2036" />
             <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
         </Style>
     </Window.Styles>
@@ -203,65 +206,75 @@
                                 Orientation="Horizontal"
                                 Spacing="10"
                                 VerticalAlignment="Center">
-                        <Border Padding="14,10"
+                        <Border Height="44"
+                                Padding="14,0"
                                 CornerRadius="16"
                                 Background="{DynamicResource PanelBackgroundBrush}"
                                 BorderBrush="{DynamicResource PanelStrokeBrush}"
                                 BorderThickness="1">
-                            <TextBlock FontSize="12"
-                                       Foreground="{DynamicResource TextMutedBrush}"
-                                       Text="{Binding CurrentRangeLabel}" />
+                            <Grid ColumnDefinitions="Auto,Auto,Auto"
+                                  ColumnSpacing="10"
+                                  VerticalAlignment="Center">
+                                <Border Width="26"
+                                        Height="26"
+                                        CornerRadius="10"
+                                        Background="#22F7E9FF">
+                                    <Path Width="14"
+                                          Height="14"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          Data="M7,5 H17 A2,2 0 0 1 19,7 V17 A2,2 0 0 1 17,19 H7 A2,2 0 0 1 5,17 V7 A2,2 0 0 1 7,5 M8,3 V7 M16,3 V7 M5,10 H19"
+                                          Stretch="Uniform"
+                                          Stroke="{DynamicResource TextMutedBrush}"
+                                          StrokeLineCap="Round"
+                                          StrokeThickness="1.7" />
+                                </Border>
+
+                                <TextBlock Grid.Column="1"
+                                           VerticalAlignment="Center"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextMutedBrush}"
+                                           Text="{Binding CurrentRangeLabel}" />
+
+                                <Grid Grid.Column="2"
+                                      Width="12"
+                                      Height="16"
+                                      VerticalAlignment="Center">
+                                    <Viewbox Width="10"
+                                             Height="10"
+                                             HorizontalAlignment="Center"
+                                             VerticalAlignment="Center"
+                                             Margin="0,2,0,0">
+                                        <Path Data="M2,3.5 L6,7.5 L10,3.5"
+                                              Stretch="Uniform"
+                                              Stroke="{DynamicResource TextSubtleBrush}"
+                                              StrokeLineCap="Round"
+                                              StrokeThickness="1.6" />
+                                    </Viewbox>
+                                </Grid>
+                            </Grid>
                         </Border>
 
-                        <Border Padding="14,10"
-                                CornerRadius="16"
-                                Background="{DynamicResource PanelBackgroundBrush}"
-                                BorderBrush="{DynamicResource PanelStrokeBrush}"
-                                BorderThickness="1">
-                            <TextBlock FontSize="12"
-                                       Foreground="{DynamicResource TextMutedBrush}"
-                                       Text="{Binding DataModeLabel}" />
-                        </Border>
-
                         <Button Classes="toolbar-button"
-                                Command="{Binding RefreshCommand}">
-                            <Border Padding="14,10"
-                                    CornerRadius="16"
-                                    Background="{DynamicResource PanelBackgroundBrush}"
-                                    BorderBrush="{DynamicResource PanelStrokeBrush}"
-                                    BorderThickness="1">
-                                <TextBlock FontSize="13"
-                                           FontWeight="SemiBold"
-                                           Foreground="{Binding $parent[Button].Foreground}"
-                                           Text="Odswiez" />
-                            </Border>
-                        </Button>
-
-                        <Button Classes="toolbar-button"
-                                Command="{Binding SyncCommand}">
-                            <Border Padding="14,10"
-                                    CornerRadius="16"
-                                    Background="{DynamicResource PanelBackgroundBrush}"
-                                    BorderBrush="{DynamicResource PanelStrokeBrush}"
-                                    BorderThickness="1">
-                                <TextBlock FontSize="13"
-                                           FontWeight="SemiBold"
-                                           Foreground="{Binding $parent[Button].Foreground}"
-                                           Text="Synchronizuj" />
-                            </Border>
-                        </Button>
-
-                        <Button Classes="toolbar-button"
-                                Command="{Binding ImportCommand}">
-                            <Border Padding="14,10"
+                                Command="{Binding SyncCommand}"
+                                ToolTip.Tip="Synchronizuj i odswiez">
+                            <Border Width="44"
+                                    Height="44"
                                     CornerRadius="16"
                                     Background="{DynamicResource AccentSoftBrush}"
                                     BorderBrush="{DynamicResource AccentStrongBrush}"
                                     BorderThickness="1">
-                                <TextBlock FontSize="13"
-                                           FontWeight="SemiBold"
-                                           Foreground="{DynamicResource TextPrimaryBrush}"
-                                           Text="Importuj" />
+                                <Viewbox Width="18"
+                                         Height="18"
+                                         HorizontalAlignment="Center"
+                                         VerticalAlignment="Center">
+                                    <Path Data="M20,12 A8,8 0 0 1 8.7,19.3 M20,12 L17.1,9.1 M20,12 L16.2,15.1 M4,12 A8,8 0 0 1 15.3,4.7 M4,12 L6.9,8.9 M4,12 L7.8,15.1"
+                                          Stretch="Uniform"
+                                          Stroke="{DynamicResource TextPrimaryBrush}"
+                                          StrokeLineCap="Round"
+                                          StrokeThickness="1.9" />
+                                </Viewbox>
                             </Border>
                         </Button>
                     </StackPanel>

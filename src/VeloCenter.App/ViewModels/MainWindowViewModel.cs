@@ -87,9 +87,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         ];
 
         SelectSectionCommand = new CommunityToolkit.Mvvm.Input.RelayCommand<NavigationItemViewModel?>(SelectSection);
-        ImportCommand = new CommunityToolkit.Mvvm.Input.RelayCommand(OpenImportWorkspace);
-        SyncCommand = new CommunityToolkit.Mvvm.Input.RelayCommand(StartSyncPlaceholder);
-        RefreshCommand = new CommunityToolkit.Mvvm.Input.RelayCommand(RefreshCurrentSection);
+        SyncCommand = new CommunityToolkit.Mvvm.Input.RelayCommand(RunToolbarSync);
 
         foreach (var navigationItem in NavigationItems)
         {
@@ -130,9 +128,7 @@ public sealed class MainWindowViewModel : ViewModelBase
 
     public string AppMetaLabel => $"{AppVersionLabel}  •  {AppAuthorLabel}";
 
-    public string CurrentRangeLabel { get; } = "Zakres: 30 dni";
-
-    public string DataModeLabel { get; } = "Tryb lokalny / probka";
+    public string CurrentRangeLabel { get; } = "30 dni";
 
     public bool IsSidebarExpanded
     {
@@ -256,11 +252,7 @@ public sealed class MainWindowViewModel : ViewModelBase
 
     public CommunityToolkit.Mvvm.Input.IRelayCommand<NavigationItemViewModel?> SelectSectionCommand { get; }
 
-    public CommunityToolkit.Mvvm.Input.IRelayCommand ImportCommand { get; }
-
     public CommunityToolkit.Mvvm.Input.IRelayCommand SyncCommand { get; }
-
-    public CommunityToolkit.Mvvm.Input.IRelayCommand RefreshCommand { get; }
 
     public void SetSidebarHoverState(bool isHovered)
     {
@@ -350,6 +342,23 @@ public sealed class MainWindowViewModel : ViewModelBase
             "Do dowiezienia: OAuth, kolejka syncu i mapowanie aktywnosci.",
             "#241D44",
             "#C9C3FF");
+    }
+
+    private void RunToolbarSync()
+    {
+        if (_currentPipelineTask is PipelineTaskKind.Sync)
+        {
+            AdvancePipelineTask();
+            UpdateStatus(
+                "Updated",
+                "Odswiezono postep biezacej synchronizacji.",
+                "Synchronizacja jest dalej w toku.",
+                "#301A44",
+                "#F1B2FF");
+            return;
+        }
+
+        StartSyncPlaceholder();
     }
 
     private void RefreshCurrentSection()

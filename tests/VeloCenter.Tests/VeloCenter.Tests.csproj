@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\VeloCenter.Core\VeloCenter.Core.csproj" />
+    <ProjectReference Include="..\..\src\VeloCenter.Infrastructure\VeloCenter.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
