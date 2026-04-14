@@ -6,10 +6,12 @@ public sealed class MainWindowViewModel : ViewModelBase
     {
         None,
         Import,
+        Sync,
     }
 
     private readonly VeloCenter.Core.Activities.IActivityRepository _activityRepository;
     private readonly VeloCenter.Core.Activities.IActivityImportService _activityImportService;
+    private readonly VeloCenter.Core.Integrations.IStravaIntegrationService _stravaIntegrationService;
     private OverviewViewModel _overviewViewModel = null!;
     private WorkoutsViewModel _workoutsViewModel = null!;
     private ProgressViewModel _progressViewModel = null!;
@@ -46,16 +48,19 @@ public sealed class MainWindowViewModel : ViewModelBase
     public MainWindowViewModel()
         : this(
             new VeloCenter.Infrastructure.Activities.InMemoryActivityRepository(),
-            new VeloCenter.Infrastructure.Activities.InMemoryActivityImportService())
+            new VeloCenter.Infrastructure.Activities.InMemoryActivityImportService(),
+            new VeloCenter.Infrastructure.Integrations.Strava.DisabledStravaIntegrationService())
     {
     }
 
     public MainWindowViewModel(
         VeloCenter.Core.Activities.IActivityRepository activityRepository,
-        VeloCenter.Core.Activities.IActivityImportService activityImportService)
+        VeloCenter.Core.Activities.IActivityImportService activityImportService,
+        VeloCenter.Core.Integrations.IStravaIntegrationService stravaIntegrationService)
     {
         _activityRepository = activityRepository;
         _activityImportService = activityImportService;
+        _stravaIntegrationService = stravaIntegrationService;
         _importViewModel = new ImportViewModel();
         _settingsViewModel = new SettingsViewModel();
 
@@ -103,9 +108,10 @@ public sealed class MainWindowViewModel : ViewModelBase
         }
 
         ReloadActivitySections();
+        RefreshStravaState();
         ApplySidebarStateToNavigationItems();
         SelectSection(_hasActivities ? _overviewNavigationItem : _importNavigationItem);
-        SetTaskMonitorIdle("Loader uruchomi sie dopiero po wybraniu pliku FIT albo GPX.");
+        SetTaskMonitorIdle("Loader uruchomi sie przy imporcie pliku albo synchronizacji Strava.");
 
         _taskStripeStopwatch = System.Diagnostics.Stopwatch.StartNew();
         _taskStripeTimer = new Avalonia.Threading.DispatcherTimer
@@ -128,7 +134,7 @@ public sealed class MainWindowViewModel : ViewModelBase
                 : "Baza jest pusta. Zacznij od sekcji integracji i zaimportuj pierwszy plik.",
             _hasActivities
                 ? "Brak zadania w tle."
-                : "Loader pozostaje ukryty, dopoki nie wybierzesz pliku.",
+                : "Loader pozostaje ukryty, dopoki nie uruchomisz importu albo synchronizacji.",
             "#2A1734",
             "#F7E9FF");
     }
@@ -326,6 +332,139 @@ public sealed class MainWindowViewModel : ViewModelBase
         await RunImportPreviewAsync(filePath);
     }
 
+    public async Task ConnectStravaAsync()
+    {
+        SelectSection(_importNavigationItem);
+
+        if (!TryStartPipelineTask(
+                PipelineTaskKind.Sync,
+                "Laczenie ze Strava",
+                "Zapisuje dane aplikacji Strava i otwieram przegladarke do autoryzacji OAuth.",
+                8))
+        {
+            return;
+        }
+
+        _importViewModel.SetStravaBusyState(true);
+
+        try
+        {
+            await AdvanceTaskStepAsync(PipelineTaskKind.Sync, "Zapisywanie danych aplikacji Strava.", 16, 140);
+
+            await _stravaIntegrationService.SaveManualConfigurationAsync(
+                new VeloCenter.Core.Integrations.StravaManualConfiguration(
+                    _importViewModel.StravaClientId,
+                    _importViewModel.StravaClientSecret));
+            await AdvanceTaskStepAsync(PipelineTaskKind.Sync, "Otwieram Strave w przegladarce.", 34, 140);
+
+            var state = await _stravaIntegrationService.ConnectAsync();
+            _importViewModel.SetStravaState(state);
+            await AdvanceTaskStepAsync(PipelineTaskKind.Sync, "Autoryzacja Stravy zakonczona i zapisana lokalnie.", 100, 160);
+
+            _ = ShowToastAsync("Polaczono ze Strava", "#20342C", "#F3FFF8");
+
+            UpdateStatus(
+                "Done",
+                "Strava zostala polaczona lokalnie.",
+                "Mozesz rozpoczac synchronizacje aktywnosci rowerowych outdoor.",
+                "#2A1734",
+                "#F7E9FF");
+        }
+        catch (Exception exception)
+        {
+            var message = GetStravaErrorMessage(exception);
+
+            _importViewModel.SetStravaError(message);
+            _ = ShowToastAsync("Nie udalo sie polaczyc ze Strava", "#4A1D28", "#FFD9E1");
+
+            UpdateStatus(
+                "Error",
+                "Laczenie ze Strava nie powiodlo sie.",
+                message,
+                "#4A1D28",
+                "#FFD9E1");
+        }
+        finally
+        {
+            _importViewModel.SetStravaBusyState(false);
+            RefreshStravaState();
+            await Task.Delay(200);
+            SetCurrentPipelineTask(PipelineTaskKind.None);
+            SetTaskMonitorIdle("Loader uruchomi sie przy imporcie pliku albo synchronizacji Strava.");
+        }
+    }
+
+    public async Task SyncStravaAsync()
+    {
+        SelectSection(_importNavigationItem);
+
+        if (!TryStartPipelineTask(
+                PipelineTaskKind.Sync,
+                "Synchronizacja ze Strava",
+                "Pobieram partiami tylko aktywnosci rowerowe outdoor i zapisuje je do SQLite.",
+                8))
+        {
+            return;
+        }
+
+        _importViewModel.SetStravaBusyState(true);
+
+        try
+        {
+            var progress = new Progress<VeloCenter.Core.Integrations.StravaSyncProgress>(progressUpdate =>
+            {
+                _importViewModel.SetStravaSyncProgress(progressUpdate);
+                SetTaskMonitor(
+                    "Synchronizacja ze Strava",
+                    progressUpdate.Message,
+                    progressUpdate.ProgressHint);
+            });
+
+            var result = await _stravaIntegrationService.SyncActivitiesAsync(progress);
+            ReloadActivitySections();
+            RefreshStravaState();
+            await AdvanceTaskStepAsync(PipelineTaskKind.Sync, "Synchronizacja Stravy zakonczona.", 100, 140);
+
+            _ = ShowToastAsync(
+                result.CreatedActivities > 0 || result.UpdatedActivities > 0
+                    ? $"Strava: {result.MatchedActivities} outdoor, +{result.CreatedActivities} nowych, {result.UpdatedActivities} zaktualizowanych"
+                    : result.SkippedActivities > 0
+                        ? $"Strava: pominieto {result.SkippedActivities} aktywnosci spoza roweru outdoor"
+                        : "Strava: brak nowych aktywnosci rowerowych outdoor",
+                "#20342C",
+                "#F3FFF8");
+
+            UpdateStatus(
+                "Done",
+                "Synchronizacja ze Strava zakonczona.",
+                $"Przejrzano {result.ProcessedActivities} aktywnosci, dopasowano {result.MatchedActivities}, pominieto {result.SkippedActivities} w {result.PagesFetched} paczkach.",
+                "#2A1734",
+                "#F7E9FF");
+        }
+        catch (Exception exception)
+        {
+            var message = GetStravaErrorMessage(exception);
+
+            _importViewModel.SetStravaError(message);
+            _ = ShowToastAsync("Synchronizacja Stravy nie powiodla sie", "#4A1D28", "#FFD9E1");
+
+            UpdateStatus(
+                "Error",
+                "Synchronizacja ze Strava nie powiodla sie.",
+                message,
+                "#4A1D28",
+                "#FFD9E1");
+        }
+        finally
+        {
+            _importViewModel.SetStravaBusyState(false);
+            RefreshStravaState();
+            await Task.Delay(200);
+            SetCurrentPipelineTask(PipelineTaskKind.None);
+            SetTaskMonitorIdle("Loader uruchomi sie przy imporcie pliku albo synchronizacji Strava.");
+        }
+    }
+
     public void SetSidebarHoverState(bool isHovered)
     {
         _sidebarTransitionVersion++;
@@ -383,7 +522,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         UpdateStatus(
             "Ready",
             "Sekcja integracji czeka na wskazanie lokalnego pliku.",
-            "Dolny loader nie pojawi sie, dopoki nie rozpoczniesz importu.",
+            "Dolny loader nie pojawi sie, dopoki nie rozpoczniesz importu albo synchronizacji.",
             "#241D44",
             "#C9C3FF");
     }
@@ -393,7 +532,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         UpdateStatus(
             "Manual",
             "Przycisk odswiezania jest chwilowo odlaczony od dolnego loadera.",
-            "Loader reaguje teraz tylko na import lokalnego pliku.",
+            "Loader reaguje teraz na import lokalnego pliku i synchronizacje Strava.",
             "#301A44",
             "#F1B2FF");
     }
@@ -403,7 +542,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         UpdateStatus(
             "Updated",
             $"Odswiezono placeholder dla sekcji {CurrentSectionTitle.ToLowerInvariant()}.",
-            "Dolny loader pozostaje przypiety tylko do importu pliku.",
+            "Dolny loader pozostaje przypiety do realnych operacji integracji.",
             "#301A44",
             "#F1B2FF");
     }
@@ -441,7 +580,7 @@ public sealed class MainWindowViewModel : ViewModelBase
             UpdateStatus(
                 "Busy",
                 "Pipeline jest juz zajety przez inne zadanie.",
-                "Poczekaj na zakonczenie biezacego importu, zanim uruchomisz kolejny.",
+                "Poczekaj na zakonczenie biezacego importu albo synchronizacji, zanim uruchomisz kolejne zadanie.",
                 "#3A1B47",
                 "#FF9AE3");
             return false;
@@ -507,7 +646,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         {
             await System.Threading.Tasks.Task.Delay(200);
             SetCurrentPipelineTask(PipelineTaskKind.None);
-            SetTaskMonitorIdle("Loader uruchomi sie ponownie przy kolejnym imporcie pliku.");
+            SetTaskMonitorIdle("Loader uruchomi sie przy imporcie pliku albo synchronizacji Strava.");
         }
     }
 
@@ -515,15 +654,25 @@ public sealed class MainWindowViewModel : ViewModelBase
         string detail,
         double progress,
         int delayMs)
+        => await AdvanceTaskStepAsync(PipelineTaskKind.Import, detail, progress, delayMs);
+
+    private async System.Threading.Tasks.Task AdvanceTaskStepAsync(
+        PipelineTaskKind taskKind,
+        string detail,
+        double progress,
+        int delayMs)
     {
         var startProgress = TaskProgressValue;
         var steps = Math.Max(1, delayMs / 24);
+        var title = taskKind is PipelineTaskKind.Sync
+            ? "Synchronizacja ze Strava"
+            : "Import pliku treningowego";
 
         for (var step = 1; step <= steps; step++)
         {
             var interpolatedProgress = startProgress + ((progress - startProgress) * step / steps);
 
-            SetTaskMonitor("Import pliku treningowego", detail, interpolatedProgress);
+            SetTaskMonitor(title, detail, interpolatedProgress);
             await System.Threading.Tasks.Task.Delay(Math.Max(16, delayMs / steps));
         }
     }
@@ -593,11 +742,25 @@ public sealed class MainWindowViewModel : ViewModelBase
         }
     }
 
+    private void RefreshStravaState()
+    {
+        _importViewModel.SetStravaState(_stravaIntegrationService.GetConnectionState());
+    }
+
     private static string GetImportErrorMessage(Exception exception) => exception switch
     {
         FileNotFoundException => "Wybrany plik nie jest juz dostepny.",
         InvalidDataException => exception.Message,
         _ => "Nie udalo sie zapisac aktywnosci do lokalnej bazy.",
+    };
+
+    private static string GetStravaErrorMessage(Exception exception) => exception switch
+    {
+        TimeoutException => "Przekroczono czas oczekiwania na autoryzacje Strava.",
+        InvalidOperationException => exception.Message,
+        System.Net.HttpListenerException => "Nie udalo sie uruchomic lokalnego callbacku. Sprawdz, czy callback domain w Stravie to 127.0.0.1.",
+        HttpRequestException => "Strava odrzucila zadanie. Sprawdz Client ID, Client Secret i polaczenie z internetem.",
+        _ => "Wystapil nieoczekiwany blad integracji ze Strava.",
     };
 
     private static string ResolveApplicationVersion()

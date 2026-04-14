@@ -150,4 +150,29 @@ public sealed class UnitTest1
             }
         }
     }
+
+    [Theory]
+    [InlineData("Ride", false, null, true)]
+    [InlineData("GravelRide", false, null, true)]
+    [InlineData("MountainBikeRide", false, null, true)]
+    [InlineData("EBikeRide", false, null, true)]
+    [InlineData("EMountainBikeRide", false, null, true)]
+    [InlineData("Handcycle", false, null, true)]
+    [InlineData("Velomobile", false, null, true)]
+    [InlineData("VirtualRide", false, null, false)]
+    [InlineData("Ride", true, null, false)]
+    [InlineData("Run", false, null, false)]
+    [InlineData(null, false, "Ride", true)]
+    [InlineData(null, false, "VirtualRide", false)]
+    public void StravaActivityFilter_OnlyAllowsOutdoorCyclingSportTypes(
+        string? sportType,
+        bool? trainer,
+        string? legacyType,
+        bool expected)
+    {
+        var isAllowed = VeloCenter.Infrastructure.Integrations.Strava.StravaActivityFilter
+            .IsOutdoorCyclingActivity(sportType, trainer, legacyType);
+
+        Assert.Equal(expected, isAllowed);
+    }
 }
