@@ -18,6 +18,7 @@ public sealed class MainWindowViewModel : ViewModelBase
     private readonly NavigationItemViewModel _importNavigationItem;
     private readonly Avalonia.Threading.DispatcherTimer _taskStripeTimer;
     private readonly System.Diagnostics.Stopwatch _taskStripeStopwatch;
+    private readonly bool _hasActivities;
 
     private bool _isSidebarExpanded;
     private bool _isSidebarContentExpanded;
@@ -44,6 +45,7 @@ public sealed class MainWindowViewModel : ViewModelBase
     public MainWindowViewModel(VeloCenter.Core.Activities.IActivityRepository activityRepository)
     {
         var activities = activityRepository.GetRecentActivities();
+        _hasActivities = activities.Count > 0;
 
         _overviewViewModel = new OverviewViewModel(VeloCenter.Core.Activities.TrainingOverview.FromActivities(activities), activities);
         _workoutsViewModel = new WorkoutsViewModel(activities);
@@ -95,8 +97,8 @@ public sealed class MainWindowViewModel : ViewModelBase
         }
 
         ApplySidebarStateToNavigationItems();
-        SelectSection(_overviewNavigationItem);
-        SetTaskMonitor("Import FIT / GPX", "Mock postepu do dopracowania UI.", 64);
+        SelectSection(_hasActivities ? _overviewNavigationItem : _importNavigationItem);
+        SetTaskMonitorIdle("Loader uruchomi sie dopiero po wybraniu pliku FIT albo GPX.");
 
         _taskStripeStopwatch = System.Diagnostics.Stopwatch.StartNew();
         _taskStripeTimer = new Avalonia.Threading.DispatcherTimer
@@ -113,9 +115,13 @@ public sealed class MainWindowViewModel : ViewModelBase
         _taskStripeTimer.Start();
 
         UpdateStatus(
-            "Ready",
-            "Nowy shell zaladowal probne aktywnosci i gotowe sekcje aplikacji.",
-            "Brak zadania w tle.",
+            _hasActivities ? "Ready" : "Empty",
+            _hasActivities
+                ? "Aplikacja zaladowala aktywnosci z lokalnej bazy."
+                : "Baza jest pusta. Zacznij od wyboru lokalnego pliku do importu.",
+            _hasActivities
+                ? "Brak zadania w tle."
+                : "Loader pozostaje ukryty, dopoki nie wybierzesz pliku.",
             "#2A1734",
             "#F7E9FF");
     }
@@ -250,9 +256,44 @@ public sealed class MainWindowViewModel : ViewModelBase
         private set => SetProperty(ref _taskStripeOffset, value);
     }
 
+    public bool IsTaskMonitorVisible => _currentPipelineTask is not PipelineTaskKind.None;
+
     public CommunityToolkit.Mvvm.Input.IRelayCommand<NavigationItemViewModel?> SelectSectionCommand { get; }
 
     public CommunityToolkit.Mvvm.Input.IRelayCommand SyncCommand { get; }
+
+    public async System.Threading.Tasks.Task StartFileImportAsync(string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+        {
+            return;
+        }
+
+        SelectSection(_importNavigationItem);
+
+        var fileName = System.IO.Path.GetFileName(filePath);
+
+        if (!TryStartPipelineTask(
+                PipelineTaskKind.Import,
+                "Import pliku treningowego",
+                $"Przygotowanie {fileName} do przyszlego parsera i zapisu w SQLite.",
+                12))
+        {
+            _importViewModel.SetImportBlocked("Poczekaj na zakonczenie biezacego zadania i sprobuj ponownie.");
+            return;
+        }
+
+        _importViewModel.SetSelectedFile(filePath);
+
+        UpdateStatus(
+            "Import",
+            $"Rozpoczeto testowe wczytywanie pliku {fileName}.",
+            "Dolny loader jest aktywny tylko dla tego importu.",
+            "#3A1B47",
+            "#FF9AE3");
+
+        await RunImportPreviewAsync(filePath);
+    }
 
     public void SetSidebarHoverState(bool isHovered)
     {
@@ -308,68 +349,30 @@ public sealed class MainWindowViewModel : ViewModelBase
     {
         SelectSection(_importNavigationItem);
 
-        if (!TryStartPipelineTask(
-                PipelineTaskKind.Import,
-                "Import FIT / GPX",
-                "Czytanie plikow, mapowanie aktywnosci i zapis do lokalnej bazy. Synchronizacja czeka na wolny pipeline.",
-                28))
-        {
-            return;
-        }
-
         UpdateStatus(
-            "Queued",
-            "Otworzono przestrzen importu dla FIT, GPX i przyszlego syncu.",
-            "Nastepny krok: podpiecie realnego flow importu plikow.",
-            "#3A1B47",
-            "#FF9AE3");
-    }
-
-    private void StartSyncPlaceholder()
-    {
-        if (!TryStartPipelineTask(
-                PipelineTaskKind.Sync,
-                "Synchronizacja z API",
-                "Pobieranie zmian, uzgadnianie aktywnosci i odswiezanie lokalnych danych. Import poczeka na zakonczenie syncu.",
-                34))
-        {
-            return;
-        }
-
-        UpdateStatus(
-            "Pending",
-            "Synchronizacja jest na razie placeholderem warstwy shell.",
-            "Do dowiezienia: OAuth, kolejka syncu i mapowanie aktywnosci.",
+            "Ready",
+            "Sekcja importu czeka na wskazanie lokalnego pliku.",
+            "Dolny loader nie pojawi sie, dopoki nie rozpoczniesz importu.",
             "#241D44",
             "#C9C3FF");
     }
 
     private void RunToolbarSync()
     {
-        if (_currentPipelineTask is PipelineTaskKind.Sync)
-        {
-            AdvancePipelineTask();
-            UpdateStatus(
-                "Updated",
-                "Odswiezono postep biezacej synchronizacji.",
-                "Synchronizacja jest dalej w toku.",
-                "#301A44",
-                "#F1B2FF");
-            return;
-        }
-
-        StartSyncPlaceholder();
+        UpdateStatus(
+            "Manual",
+            "Przycisk odswiezania jest chwilowo odlaczony od dolnego loadera.",
+            "Loader reaguje teraz tylko na import lokalnego pliku.",
+            "#301A44",
+            "#F1B2FF");
     }
 
     private void RefreshCurrentSection()
     {
-        AdvancePipelineTask();
         UpdateStatus(
             "Updated",
             $"Odswiezono placeholder dla sekcji {CurrentSectionTitle.ToLowerInvariant()}.",
-            _currentPipelineTask is PipelineTaskKind.None
-                ? "Brak zadania w tle."
-                : "Biezace zadanie posunelo sie o kolejny krok pipeline.",
+            "Dolny loader pozostaje przypiety tylko do importu pliku.",
             "#301A44",
             "#F1B2FF");
     }
@@ -402,56 +405,57 @@ public sealed class MainWindowViewModel : ViewModelBase
         string detail,
         double progress)
     {
-        if (_currentPipelineTask is not PipelineTaskKind.None && _currentPipelineTask != taskKind)
+        if (_currentPipelineTask is not PipelineTaskKind.None)
         {
             UpdateStatus(
                 "Busy",
                 "Pipeline jest juz zajety przez inne zadanie.",
-                "Import i synchronizacja nie uruchamiaja sie rownoczesnie.",
+                "Poczekaj na zakonczenie biezacego importu, zanim uruchomisz kolejny.",
                 "#3A1B47",
                 "#FF9AE3");
             return false;
         }
 
-        _currentPipelineTask = taskKind;
+        SetCurrentPipelineTask(taskKind);
         SetTaskMonitor(title, detail, progress);
         return true;
     }
 
-    private void AdvancePipelineTask()
+    private async System.Threading.Tasks.Task RunImportPreviewAsync(string filePath)
     {
-        if (_currentPipelineTask is PipelineTaskKind.None)
-        {
-            SetTaskMonitorIdle("Pipeline czeka na import albo synchronizacje.");
-            return;
-        }
+        var fileName = System.IO.Path.GetFileName(filePath);
 
-        var nextProgress = System.Math.Min(100, TaskProgressValue + 18);
-        var taskIsImport = _currentPipelineTask is PipelineTaskKind.Import;
-        var title = taskIsImport ? "Import FIT / GPX" : "Synchronizacja z API";
-
-        if (nextProgress >= 100)
+        try
         {
-            _currentPipelineTask = PipelineTaskKind.None;
-            SetTaskMonitorIdle(
-                taskIsImport
-                    ? "Import zakonczony. Pipeline jest wolny i gotowy na synchronizacje."
-                    : "Synchronizacja zakonczona. Mozesz odpalic kolejny import albo analize.");
+            await AdvanceImportStepAsync("Sprawdzanie rozszerzenia i przygotowanie loadera.", 28, 220);
+            await AdvanceImportStepAsync("Plik trafia do testowego przeplywu UI bez zapisu do bazy.", 57, 260);
+            await AdvanceImportStepAsync("Walidacja pustego stanu i odswiezenie kontrolek importu.", 86, 240);
+            await AdvanceImportStepAsync("Loader zakonczyl przebieg testowy.", 100, 180);
+
+            _importViewModel.SetImportCompleted(filePath);
+
             UpdateStatus(
                 "Done",
-                taskIsImport ? "Import zakonczyl sie pomyslnie." : "Synchronizacja zakonczyl sie pomyslnie.",
-                "Pipeline jest wolny.",
+                $"Plik {fileName} przeszedl przez frontendowy loader.",
+                "Na razie to test UI bez parsera i bez zapisu do SQLite.",
                 "#2A1734",
                 "#F7E9FF");
-            return;
         }
+        finally
+        {
+            await System.Threading.Tasks.Task.Delay(200);
+            SetCurrentPipelineTask(PipelineTaskKind.None);
+            SetTaskMonitorIdle("Loader uruchomi sie ponownie przy kolejnym imporcie pliku.");
+        }
+    }
 
-        SetTaskMonitor(
-            title,
-            taskIsImport
-                ? "Import trwa. Odczyt plikow i mapowanie aktywnosci sa w toku."
-                : "Synchronizacja trwa. Uzgadnianie aktywnosci z lokalna baza jest w toku.",
-            nextProgress);
+    private async System.Threading.Tasks.Task AdvanceImportStepAsync(
+        string detail,
+        double progress,
+        int delayMs)
+    {
+        SetTaskMonitor("Import pliku treningowego", detail, progress);
+        await System.Threading.Tasks.Task.Delay(delayMs);
     }
 
     private void SetTaskMonitorIdle(string detail)
@@ -467,6 +471,17 @@ public sealed class MainWindowViewModel : ViewModelBase
         TaskTitle = title;
         TaskDetail = detail;
         TaskProgressValue = progress;
+    }
+
+    private void SetCurrentPipelineTask(PipelineTaskKind taskKind)
+    {
+        if (_currentPipelineTask == taskKind)
+        {
+            return;
+        }
+
+        _currentPipelineTask = taskKind;
+        OnPropertyChanged(nameof(IsTaskMonitorVisible));
     }
 
     private static string ResolveApplicationVersion()

@@ -258,7 +258,7 @@
 
                         <Button Classes="toolbar-button"
                                 Command="{Binding SyncCommand}"
-                                ToolTip.Tip="Synchronizuj i odswiez">
+                                ToolTip.Tip="Odswiez widok bez uruchamiania loadera">
                             <Border Width="44"
                                     Height="44"
                                     CornerRadius="16"
@@ -316,7 +316,8 @@
                 <Grid Margin="108,10,28,10">
                     <StackPanel HorizontalAlignment="Center"
                                 Spacing="7"
-                                Width="420">
+                                Width="420"
+                                IsVisible="{Binding IsTaskMonitorVisible}">
                         <TextBlock HorizontalAlignment="Center"
                                    FontSize="13"
                                    FontWeight="SemiBold"

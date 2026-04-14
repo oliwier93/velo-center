@@ -6,6 +6,8 @@ public sealed class OverviewViewModel : ViewModelBase
 {
     public OverviewViewModel(TrainingOverview overview, IReadOnlyList<ActivitySummary> activities)
     {
+        HasActivities = activities.Count > 0;
+
         Metrics =
         [
             new MetricTileViewModel("Aktywnosci", overview.TotalActivities.ToString(), "Wczytane do startowego widoku."),
@@ -22,11 +24,19 @@ public sealed class OverviewViewModel : ViewModelBase
 
         NextSteps =
         [
-            new InfoCardViewModel("Baza danych", "SQLite + EF Core", "Zastap repo in-memory trwalym magazynem lokalnym."),
-            new InfoCardViewModel("Pierwszy importer", "FIT albo GPX", "Dowiez przeplyw od pliku do zapisanej aktywnosci."),
+            new InfoCardViewModel("Baza danych", "SQLite + EF Core", HasActivities
+                ? "Trwaly magazyn jest gotowy na prawdziwe importy."
+                : "Baza startuje pusta, wiec od razu widac realny stan aplikacji."),
+            new InfoCardViewModel("Pierwszy importer", "FIT albo GPX", HasActivities
+                ? "Kolejny krok to zapis z lokalnego pliku do tabel aktywnosci."
+                : "Wybierz plik w sekcji importu, zeby uruchomic testowy loader frontendu."),
             new InfoCardViewModel("Analiza", "Trendy tygodniowe", "Dodaj wykresy objetosci, dystansu i czasu."),
         ];
     }
+
+    public bool HasActivities { get; }
+
+    public bool HasNoActivities => !HasActivities;
 
     public IReadOnlyList<MetricTileViewModel> Metrics { get; }
 

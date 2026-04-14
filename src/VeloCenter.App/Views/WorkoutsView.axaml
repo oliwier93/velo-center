@@ -51,7 +51,26 @@
                                Foreground="{DynamicResource TextPrimaryBrush}"
                                Text="Biblioteka aktywnosci" />
 
-                    <ItemsControl ItemsSource="{Binding RideLibrary}">
+                    <Border Padding="18"
+                            CornerRadius="18"
+                            Background="{DynamicResource PanelBackgroundBrush}"
+                            BorderBrush="{DynamicResource PanelStrokeBrush}"
+                            BorderThickness="1"
+                            IsVisible="{Binding HasNoActivities}">
+                        <StackPanel Spacing="6">
+                            <TextBlock FontSize="18"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       Text="Brak treningow w bibliotece" />
+                            <TextBlock FontSize="13"
+                                       Foreground="{DynamicResource TextMutedBrush}"
+                                       Text="Lista aktywnosci wypelni sie po pierwszym imporcie. Na razie ten widok pokazuje, jak aplikacja zachowuje sie na pustej bazie."
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+
+                    <ItemsControl ItemsSource="{Binding RideLibrary}"
+                                  IsVisible="{Binding HasActivities}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:RecentRideViewModel">
                                 <Border Margin="0,0,0,12"

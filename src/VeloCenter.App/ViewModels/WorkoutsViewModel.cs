@@ -6,17 +6,32 @@ public sealed class WorkoutsViewModel : ViewModelBase
 {
     public WorkoutsViewModel(IReadOnlyList<ActivitySummary> activities)
     {
-        var latestRide = activities.OrderByDescending(activity => activity.StartTime).First();
-        var longestRide = activities.OrderByDescending(activity => activity.DistanceKm).First();
-        var averageDistance = activities.Average(activity => activity.DistanceKm);
+        HasActivities = activities.Count > 0;
 
-        Highlights =
-        [
-            new MetricTileViewModel("Wczytane treningi", activities.Count.ToString(), "Startowa biblioteka aktywnosci."),
-            new MetricTileViewModel("Najnowszy przejazd", latestRide.DistanceLabel, latestRide.Title),
-            new MetricTileViewModel("Sredni dystans", $"{averageDistance:0.0} km", "Na aktywnosc w aktualnym zestawie."),
-            new MetricTileViewModel("Najdluzszy trening", longestRide.DistanceLabel, longestRide.Title),
-        ];
+        if (HasActivities)
+        {
+            var latestRide = activities.OrderByDescending(activity => activity.StartTime).First();
+            var longestRide = activities.OrderByDescending(activity => activity.DistanceKm).First();
+            var averageDistance = activities.Average(activity => activity.DistanceKm);
+
+            Highlights =
+            [
+                new MetricTileViewModel("Wczytane treningi", activities.Count.ToString(), "Startowa biblioteka aktywnosci."),
+                new MetricTileViewModel("Najnowszy przejazd", latestRide.DistanceLabel, latestRide.Title),
+                new MetricTileViewModel("Sredni dystans", $"{averageDistance:0.0} km", "Na aktywnosc w aktualnym zestawie."),
+                new MetricTileViewModel("Najdluzszy trening", longestRide.DistanceLabel, longestRide.Title),
+            ];
+        }
+        else
+        {
+            Highlights =
+            [
+                new MetricTileViewModel("Wczytane treningi", "0", "Biblioteka czeka na pierwszy import."),
+                new MetricTileViewModel("Najnowszy przejazd", "--", "Pojawi sie po pierwszym pliku FIT albo GPX."),
+                new MetricTileViewModel("Sredni dystans", "--", "Potrzebujemy przynajmniej jednej aktywnosci."),
+                new MetricTileViewModel("Najdluzszy trening", "--", "Na razie baza jest celowo pusta."),
+            ];
+        }
 
         RideLibrary =
         [
@@ -32,6 +47,10 @@ public sealed class WorkoutsViewModel : ViewModelBase
             new InfoCardViewModel("Intensywnosc", "Easy / Tempo / Hard", "Warto dodac po podpieciu mocy albo tetna."),
         ];
     }
+
+    public bool HasActivities { get; }
+
+    public bool HasNoActivities => !HasActivities;
 
     public IReadOnlyList<MetricTileViewModel> Highlights { get; }
 

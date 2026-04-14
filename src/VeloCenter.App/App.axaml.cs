@@ -22,7 +22,7 @@ public partial class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             var databasePath = VeloCenterSqliteDatabase.GetDefaultDatabasePath();
-            VeloCenterSqliteDatabase.Initialize(databasePath);
+            VeloCenterSqliteDatabase.Initialize(databasePath, seedDemoData: false);
 
             desktop.MainWindow = new MainWindow
             {

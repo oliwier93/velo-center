@@ -6,23 +6,39 @@ public sealed class ProgressViewModel : ViewModelBase
 {
     public ProgressViewModel(IReadOnlyList<ActivitySummary> activities)
     {
-        var longestRide = activities.OrderByDescending(activity => activity.DistanceKm).First();
-        var activeDays = activities
-            .Select(activity => activity.StartTime.Date)
-            .Distinct()
-            .Count();
-        var averageMinutes = activities.Average(activity => activity.Duration.TotalMinutes);
+        HasActivities = activities.Count > 0;
 
-        Highlights =
-        [
-            new MetricTileViewModel("Aktywne dni", activeDays.ToString(), "Dni z przynajmniej jednym treningiem."),
-            new MetricTileViewModel("Najdluzszy przejazd", longestRide.DistanceLabel, longestRide.Title),
-            new MetricTileViewModel("Sredni czas", $"{averageMinutes:0} min", "Na aktywnosc w tym zestawie."),
-        ];
+        if (HasActivities)
+        {
+            var longestRide = activities.OrderByDescending(activity => activity.DistanceKm).First();
+            var activeDays = activities
+                .Select(activity => activity.StartTime.Date)
+                .Distinct()
+                .Count();
+            var averageMinutes = activities.Average(activity => activity.Duration.TotalMinutes);
+
+            Highlights =
+            [
+                new MetricTileViewModel("Aktywne dni", activeDays.ToString(), "Dni z przynajmniej jednym treningiem."),
+                new MetricTileViewModel("Najdluzszy przejazd", longestRide.DistanceLabel, longestRide.Title),
+                new MetricTileViewModel("Sredni czas", $"{averageMinutes:0} min", "Na aktywnosc w tym zestawie."),
+            ];
+        }
+        else
+        {
+            Highlights =
+            [
+                new MetricTileViewModel("Aktywne dni", "0", "Trend ruszy po pierwszym imporcie."),
+                new MetricTileViewModel("Najdluzszy przejazd", "--", "Brak aktywnosci do porownania."),
+                new MetricTileViewModel("Sredni czas", "--", "Statystyki pojawia sie po zasileniu bazy."),
+            ];
+        }
 
         Signals =
         [
-            new InfoCardViewModel("Spojnosc", "Buduje sie", "Masz juz shell pod tygodniowe trendy i porownania blokow treningowych."),
+            new InfoCardViewModel("Spojnosc", HasActivities ? "Buduje sie" : "Czeka na dane", HasActivities
+                ? "Masz juz shell pod tygodniowe trendy i porownania blokow treningowych."
+                : "Na pustej bazie latwiej ocenic, jak aplikacja zachowuje sie przed pierwszym importem."),
             new InfoCardViewModel("Moc i tetno", "Jeszcze offline", "Po importerze FIT bedzie sens liczyc strefy, IF i TSS."),
             new InfoCardViewModel("Nastepny unlock", "CTL / ATL / TSB", "Te metryki warto dorzucic po stabilnym modelu danych."),
         ];
@@ -33,6 +49,10 @@ public sealed class ProgressViewModel : ViewModelBase
             new InfoCardViewModel("PR i best efforts", "Etap 2", "Dobrze wejda po imporcie streamow albo danych mocy."),
         ];
     }
+
+    public bool HasActivities { get; }
+
+    public bool HasNoActivities => !HasActivities;
 
     public IReadOnlyList<MetricTileViewModel> Highlights { get; }
 

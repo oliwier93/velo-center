@@ -37,7 +37,7 @@ public static class VeloCenterSqliteDatabase
         }
     }
 
-    public static void Initialize(string databasePath)
+    public static void Initialize(string databasePath, bool seedDemoData = false)
     {
         var dbContextOptions = CreateOptions(databasePath);
 
@@ -46,7 +46,7 @@ public static class VeloCenterSqliteDatabase
         StampLegacyDatabaseIfNeeded(dbContext);
         dbContext.Database.Migrate();
 
-        if (dbContext.Activities.Any())
+        if (!seedDemoData || dbContext.Activities.Any())
         {
             return;
         }

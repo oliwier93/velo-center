@@ -38,8 +38,8 @@ public sealed class UnitTest1
 
         try
         {
-            VeloCenter.Infrastructure.Persistence.VeloCenterSqliteDatabase.Initialize(databasePath);
-            VeloCenter.Infrastructure.Persistence.VeloCenterSqliteDatabase.Initialize(databasePath);
+            VeloCenter.Infrastructure.Persistence.VeloCenterSqliteDatabase.Initialize(databasePath, seedDemoData: true);
+            VeloCenter.Infrastructure.Persistence.VeloCenterSqliteDatabase.Initialize(databasePath, seedDemoData: true);
 
             var repository = new VeloCenter.Infrastructure.Activities.SqliteActivityRepository(databasePath);
             var activities = repository.GetRecentActivities();
@@ -55,6 +55,33 @@ public sealed class UnitTest1
             Assert.Equal("Sweet spot ride", activities[0].Title);
             Assert.Equal("Endurance spin", activities[1].Title);
             Assert.Equal("Recovery ride", activities[2].Title);
+        }
+        finally
+        {
+            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+
+            if (Directory.Exists(databaseDirectory))
+            {
+                Directory.Delete(databaseDirectory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void SqliteRepository_InitializesEmptyDatabaseWithoutSeedData()
+    {
+        var databaseDirectory = Path.Combine(Path.GetTempPath(), "velo-center-tests", Guid.NewGuid().ToString("N"));
+        var databasePath = Path.Combine(databaseDirectory, "velo-center.db");
+
+        try
+        {
+            VeloCenter.Infrastructure.Persistence.VeloCenterSqliteDatabase.Initialize(databasePath, seedDemoData: false);
+
+            var repository = new VeloCenter.Infrastructure.Activities.SqliteActivityRepository(databasePath);
+            var activities = repository.GetRecentActivities();
+
+            Assert.True(File.Exists(databasePath));
+            Assert.Empty(activities);
         }
         finally
         {

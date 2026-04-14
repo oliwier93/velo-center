@@ -51,7 +51,26 @@
                                Foreground="{DynamicResource TextPrimaryBrush}"
                                Text="Ostatnie przejazdy" />
 
-                    <ItemsControl ItemsSource="{Binding RecentActivities}">
+                    <Border Padding="18"
+                            CornerRadius="18"
+                            Background="{DynamicResource PanelBackgroundBrush}"
+                            BorderBrush="{DynamicResource PanelStrokeBrush}"
+                            BorderThickness="1"
+                            IsVisible="{Binding HasNoActivities}">
+                        <StackPanel Spacing="6">
+                            <TextBlock FontSize="18"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       Text="Baza jest jeszcze pusta" />
+                            <TextBlock FontSize="13"
+                                       Foreground="{DynamicResource TextMutedBrush}"
+                                       Text="To jest celowy pusty stan. Przejdz do importu i wybierz pierwszy plik FIT albo GPX, zeby zaczac testy z loaderem."
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+
+                    <ItemsControl ItemsSource="{Binding RecentActivities}"
+                                  IsVisible="{Binding HasActivities}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:RecentRideViewModel">
                                 <Border Margin="0,0,0,12"

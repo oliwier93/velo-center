@@ -3,87 +3,174 @@
              xmlns:vm="using:VeloCenter.App.ViewModels"
              x:Class="VeloCenter.App.Views.ImportView"
              x:DataType="vm:ImportViewModel">
-    <Grid ColumnDefinitions="*,*"
-          ColumnSpacing="24">
-        <Border Padding="22"
-                CornerRadius="24"
+    <StackPanel Spacing="24">
+        <Border Padding="24"
+                CornerRadius="28"
                 Background="{DynamicResource PanelStrongBackgroundBrush}"
                 BorderBrush="{DynamicResource PanelStrokeBrush}"
                 BorderThickness="1">
-            <StackPanel Spacing="16">
-                <TextBlock FontSize="24"
-                           FontWeight="Bold"
-                           Foreground="{DynamicResource TextPrimaryBrush}"
-                           Text="Zrodla danych" />
+            <Grid ColumnDefinitions="1.3*,0.9*"
+                  ColumnSpacing="24">
+                <StackPanel Spacing="14">
+                    <TextBlock FontSize="28"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               Text="Import z lokalnego pliku" />
 
-                <ItemsControl ItemsSource="{Binding Sources}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:InfoCardViewModel">
-                            <Border Margin="0,0,0,12"
-                                    Padding="16"
-                                    CornerRadius="18"
-                                    Background="{DynamicResource PanelBackgroundBrush}"
-                                    BorderBrush="{DynamicResource PanelStrokeBrush}"
-                                    BorderThickness="1">
-                                <StackPanel Spacing="6">
-                                    <TextBlock FontSize="12"
-                                               Foreground="{DynamicResource TextSubtleBrush}"
-                                               Text="{Binding Title}" />
-                                    <TextBlock FontSize="18"
-                                               FontWeight="SemiBold"
-                                               Foreground="{DynamicResource TextPrimaryBrush}"
-                                               Text="{Binding Value}" />
-                                    <TextBlock FontSize="13"
-                                               Foreground="{DynamicResource TextMutedBrush}"
-                                               Text="{Binding Description}"
-                                               TextWrapping="Wrap" />
-                                </StackPanel>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </StackPanel>
+                    <TextBlock FontSize="14"
+                               Foreground="{DynamicResource TextMutedBrush}"
+                               Text="Na start testujemy reczny wybor pliku. Loader na dolnym pasku uruchomi sie tylko podczas tego importu, a przy bezczynnosci pozostanie ukryty."
+                               TextWrapping="Wrap" />
+
+                    <Button Click="PickFileClick"
+                            HorizontalAlignment="Left"
+                            Padding="0"
+                            Background="Transparent"
+                            BorderThickness="0">
+                        <Border Padding="18,16"
+                                CornerRadius="20"
+                                Background="{DynamicResource AccentStrongBrush}">
+                            <StackPanel Spacing="4">
+                                <TextBlock FontSize="17"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                           Text="Wybierz plik FIT albo GPX" />
+                                <TextBlock FontSize="13"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                           Text="To uruchomi testowy loader i zaktualizuje status importu."
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                    </Button>
+
+                    <TextBlock FontSize="12"
+                               Foreground="{DynamicResource TextSubtleBrush}"
+                               Text="Obslugiwane rozszerzenia: .fit, .fit.gz, .gpx" />
+                </StackPanel>
+
+                <Border Grid.Column="1"
+                        Padding="18"
+                        CornerRadius="22"
+                        Background="{DynamicResource PanelBackgroundBrush}"
+                        BorderBrush="{DynamicResource PanelStrokeBrush}"
+                        BorderThickness="1">
+                    <StackPanel Spacing="10">
+                        <TextBlock FontSize="12"
+                                   Foreground="{DynamicResource TextSubtleBrush}"
+                                   Text="Ostatni wskazany plik" />
+                        <TextBlock FontSize="20"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   Text="{Binding SelectedFileName}"
+                                   TextWrapping="Wrap" />
+                        <TextBlock FontSize="13"
+                                   Foreground="{DynamicResource TextMutedBrush}"
+                                   Text="{Binding SelectedFileDescription}"
+                                   TextWrapping="Wrap" />
+
+                        <Border Margin="0,6,0,0"
+                                Padding="14"
+                                CornerRadius="18"
+                                Background="#141A2036"
+                                BorderBrush="{DynamicResource PanelStrokeBrush}"
+                                BorderThickness="1">
+                            <StackPanel Spacing="4">
+                                <TextBlock FontSize="12"
+                                           Foreground="{DynamicResource TextSubtleBrush}"
+                                           Text="{Binding LastImportState}" />
+                                <TextBlock FontSize="13"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                           Text="{Binding LastImportDetail}"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Border>
+            </Grid>
         </Border>
 
-        <Border Grid.Column="1"
-                Padding="22"
-                CornerRadius="24"
-                Background="{DynamicResource PanelStrongBackgroundBrush}"
-                BorderBrush="{DynamicResource PanelStrokeBrush}"
-                BorderThickness="1">
-            <StackPanel Spacing="16">
-                <TextBlock FontSize="24"
-                           FontWeight="Bold"
-                           Foreground="{DynamicResource TextPrimaryBrush}"
-                           Text="Kolejka przeplywu" />
+        <Grid ColumnDefinitions="*,*"
+              ColumnSpacing="24">
+            <Border Padding="22"
+                    CornerRadius="24"
+                    Background="{DynamicResource PanelStrongBackgroundBrush}"
+                    BorderBrush="{DynamicResource PanelStrokeBrush}"
+                    BorderThickness="1">
+                <StackPanel Spacing="16">
+                    <TextBlock FontSize="24"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               Text="Zrodla danych" />
 
-                <ItemsControl ItemsSource="{Binding Pipeline}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:InfoCardViewModel">
-                            <Border Margin="0,0,0,12"
-                                    Padding="16"
-                                    CornerRadius="18"
-                                    Background="{DynamicResource PanelBackgroundBrush}"
-                                    BorderBrush="{DynamicResource PanelStrokeBrush}"
-                                    BorderThickness="1">
-                                <StackPanel Spacing="6">
-                                    <TextBlock FontSize="12"
-                                               Foreground="{DynamicResource TextSubtleBrush}"
-                                               Text="{Binding Title}" />
-                                    <TextBlock FontSize="18"
-                                               FontWeight="SemiBold"
-                                               Foreground="{DynamicResource TextPrimaryBrush}"
-                                               Text="{Binding Value}" />
-                                    <TextBlock FontSize="13"
-                                               Foreground="{DynamicResource TextMutedBrush}"
-                                               Text="{Binding Description}"
-                                               TextWrapping="Wrap" />
-                                </StackPanel>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </StackPanel>
-        </Border>
-    </Grid>
+                    <ItemsControl ItemsSource="{Binding Sources}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:InfoCardViewModel">
+                                <Border Margin="0,0,0,12"
+                                        Padding="16"
+                                        CornerRadius="18"
+                                        Background="{DynamicResource PanelBackgroundBrush}"
+                                        BorderBrush="{DynamicResource PanelStrokeBrush}"
+                                        BorderThickness="1">
+                                    <StackPanel Spacing="6">
+                                        <TextBlock FontSize="12"
+                                                   Foreground="{DynamicResource TextSubtleBrush}"
+                                                   Text="{Binding Title}" />
+                                        <TextBlock FontSize="18"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                                   Text="{Binding Value}" />
+                                        <TextBlock FontSize="13"
+                                                   Foreground="{DynamicResource TextMutedBrush}"
+                                                   Text="{Binding Description}"
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="1"
+                    Padding="22"
+                    CornerRadius="24"
+                    Background="{DynamicResource PanelStrongBackgroundBrush}"
+                    BorderBrush="{DynamicResource PanelStrokeBrush}"
+                    BorderThickness="1">
+                <StackPanel Spacing="16">
+                    <TextBlock FontSize="24"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               Text="Kolejka przeplywu" />
+
+                    <ItemsControl ItemsSource="{Binding Pipeline}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:InfoCardViewModel">
+                                <Border Margin="0,0,0,12"
+                                        Padding="16"
+                                        CornerRadius="18"
+                                        Background="{DynamicResource PanelBackgroundBrush}"
+                                        BorderBrush="{DynamicResource PanelStrokeBrush}"
+                                        BorderThickness="1">
+                                    <StackPanel Spacing="6">
+                                        <TextBlock FontSize="12"
+                                                   Foreground="{DynamicResource TextSubtleBrush}"
+                                                   Text="{Binding Title}" />
+                                        <TextBlock FontSize="18"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                                   Text="{Binding Value}" />
+                                        <TextBlock FontSize="13"
+                                                   Foreground="{DynamicResource TextMutedBrush}"
+                                                   Text="{Binding Description}"
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </StackPanel>
 </UserControl>
