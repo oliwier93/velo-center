@@ -10,6 +10,7 @@ namespace VeloCenter.Infrastructure.Activities;
 
 public sealed class LocalFileActivityImportService(string databasePath) : IActivityImportService
 {
+    private const int MaxStoredRoutePoints = 600;
     private readonly DbContextOptions<VeloCenterDbContext> _dbContextOptions = VeloCenterSqliteDatabase.CreateOptions(databasePath);
 
     public ActivityImportResult ImportLocalFile(string filePath)
@@ -51,6 +52,7 @@ public sealed class LocalFileActivityImportService(string databasePath) : IActiv
         record.DistanceKm = draft.DistanceKm;
         record.DurationSeconds = Math.Max(0, (int)Math.Round(draft.Duration.TotalSeconds));
         record.LastUpdatedAt = importedAt;
+        ReplaceRoutePoints(dbContext, record.Id, draft.RoutePoints);
 
         dbContext.SaveChanges();
 
@@ -90,7 +92,8 @@ public sealed class LocalFileActivityImportService(string databasePath) : IActiv
             startTime,
             0,
             TimeSpan.Zero,
-            fingerprint);
+            fingerprint,
+            []);
     }
 
     private static ImportedActivityDraft CreateGpxDraft(string filePath, string fingerprint)
@@ -128,7 +131,8 @@ public sealed class LocalFileActivityImportService(string databasePath) : IActiv
                     GetFileTimestamp(filePath),
                     0,
                     TimeSpan.Zero,
-                    fingerprint);
+                    fingerprint,
+                    []);
             }
 
             var timestamps = trackPoints
@@ -149,7 +153,8 @@ public sealed class LocalFileActivityImportService(string databasePath) : IActiv
                 startTime,
                 distanceKm,
                 duration,
-                fingerprint);
+                fingerprint,
+                BuildStoredRoutePoints(trackPoints));
         }
         catch (XmlException exception)
         {
@@ -247,13 +252,72 @@ public sealed class LocalFileActivityImportService(string databasePath) : IActiv
 
     private static double DegreesToRadians(double degrees) => degrees * (Math.PI / 180d);
 
+    private static IReadOnlyList<ActivityRoutePoint> BuildStoredRoutePoints(IReadOnlyList<GpxTrackPoint> trackPoints)
+    {
+        if (trackPoints.Count == 0)
+        {
+            return [];
+        }
+
+        if (trackPoints.Count <= MaxStoredRoutePoints)
+        {
+            return
+            [
+                .. trackPoints.Select(point => new ActivityRoutePoint(point.Latitude, point.Longitude)),
+            ];
+        }
+
+        var points = new List<ActivityRoutePoint>(MaxStoredRoutePoints);
+        var step = (double)(trackPoints.Count - 1) / (MaxStoredRoutePoints - 1);
+
+        for (var index = 0; index < MaxStoredRoutePoints; index++)
+        {
+            var sourceIndex = (int)Math.Round(index * step);
+            var clampedIndex = Math.Clamp(sourceIndex, 0, trackPoints.Count - 1);
+            var point = trackPoints[clampedIndex];
+            points.Add(new ActivityRoutePoint(point.Latitude, point.Longitude));
+        }
+
+        return points;
+    }
+
+    private static void ReplaceRoutePoints(
+        VeloCenterDbContext dbContext,
+        Guid activityId,
+        IReadOnlyList<ActivityRoutePoint> routePoints)
+    {
+        var existingRoutePoints = dbContext.ActivityRoutePoints
+            .Where(point => point.ActivityId == activityId)
+            .ToList();
+
+        if (existingRoutePoints.Count > 0)
+        {
+            dbContext.ActivityRoutePoints.RemoveRange(existingRoutePoints);
+        }
+
+        if (routePoints.Count == 0)
+        {
+            return;
+        }
+
+        dbContext.ActivityRoutePoints.AddRange(
+            routePoints.Select((point, index) => new ActivityRoutePointRecord
+            {
+                ActivityId = activityId,
+                Sequence = index,
+                Latitude = point.Latitude,
+                Longitude = point.Longitude,
+            }));
+    }
+
     private sealed record ImportedActivityDraft(
         ActivitySource Source,
         string Title,
         DateTimeOffset StartTime,
         double DistanceKm,
         TimeSpan Duration,
-        string ImportFingerprint);
+        string ImportFingerprint,
+        IReadOnlyList<ActivityRoutePoint> RoutePoints);
 
     private sealed record GpxTrackPoint(
         double Latitude,

@@ -1,0 +1,76 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:VeloCenter.App.ViewModels"
+             xmlns:controls="using:VeloCenter.App.Controls"
+             x:Class="VeloCenter.App.Views.HeatmapView"
+             x:DataType="vm:HeatmapViewModel">
+    <Grid RowDefinitions="*,Auto"
+          RowSpacing="18"
+          VerticalAlignment="Stretch">
+        <Border Padding="18"
+                CornerRadius="28"
+                Background="#0E111D"
+                BorderBrush="{DynamicResource PanelStrokeBrush}"
+                BorderThickness="1">
+            <Grid VerticalAlignment="Stretch">
+                <controls:RouteHeatmapControl Routes="{Binding Routes}"
+                                              IsVisible="{Binding HasRoutes}" />
+
+                <Border Padding="22"
+                        CornerRadius="22"
+                        Background="{DynamicResource PanelBackgroundBrush}"
+                        BorderBrush="{DynamicResource PanelStrokeBrush}"
+                        BorderThickness="1"
+                        VerticalAlignment="Top"
+                        IsVisible="{Binding HasNoRoutes}">
+                    <StackPanel Spacing="6">
+                        <TextBlock FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   Text="{Binding EmptyTitle}" />
+                        <TextBlock FontSize="13"
+                                   Foreground="{DynamicResource TextMutedBrush}"
+                                   Text="{Binding EmptyDescription}"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+
+        <ItemsControl Grid.Row="1"
+                      HorizontalAlignment="Center"
+                      ItemsSource="{Binding Highlights}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <WrapPanel Orientation="Horizontal"
+                               ItemWidth="240" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:MetricTileViewModel">
+                    <Border Margin="0,0,14,0"
+                            Padding="16"
+                            CornerRadius="20"
+                            Background="{DynamicResource PanelBackgroundBrush}"
+                            BorderBrush="{DynamicResource PanelStrokeBrush}"
+                            BorderThickness="1">
+                        <StackPanel Spacing="4">
+                            <TextBlock FontSize="13"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextMutedBrush}"
+                                       Text="{Binding Label}" />
+                            <TextBlock FontSize="28"
+                                       FontWeight="Bold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       Text="{Binding Value}" />
+                            <TextBlock FontSize="12"
+                                       Foreground="{DynamicResource TextSubtleBrush}"
+                                       Text="{Binding Detail}"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </Grid>
+</UserControl>

@@ -19,6 +19,7 @@ public sealed class StravaIntegrationService(string databasePath) : IStravaInteg
     private const string ActivitiesUrl = "https://www.strava.com/api/v3/athlete/activities";
     private const string RequiredScopes = "activity:read_all,profile:read_all";
     private const int PageSize = 100;
+    private const int MaxStoredRoutePoints = 300;
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -316,11 +317,100 @@ public sealed class StravaIntegrationService(string databasePath) : IStravaInteg
             record.DistanceKm = Math.Round(activity.DistanceMeters / 1000d, 2);
             record.DurationSeconds = Math.Max(0, activity.ElapsedTimeSeconds);
             record.LastUpdatedAt = importedAt;
+            ReplaceRoutePoints(dbContext, record.Id, DecodeSummaryPolyline(activity.Map?.SummaryPolyline));
         }
 
         dbContext.SaveChanges();
 
         return new BatchUpsertResult(createdActivities, updatedActivities);
+    }
+
+    private static void ReplaceRoutePoints(
+        VeloCenterDbContext dbContext,
+        Guid activityId,
+        IReadOnlyList<ActivityRoutePoint> routePoints)
+    {
+        var existingRoutePoints = dbContext.ActivityRoutePoints
+            .Where(point => point.ActivityId == activityId)
+            .ToList();
+
+        if (existingRoutePoints.Count > 0)
+        {
+            dbContext.ActivityRoutePoints.RemoveRange(existingRoutePoints);
+        }
+
+        if (routePoints.Count == 0)
+        {
+            return;
+        }
+
+        dbContext.ActivityRoutePoints.AddRange(
+            routePoints.Select((point, index) => new ActivityRoutePointRecord
+            {
+                ActivityId = activityId,
+                Sequence = index,
+                Latitude = point.Latitude,
+                Longitude = point.Longitude,
+            }));
+    }
+
+    private static IReadOnlyList<ActivityRoutePoint> DecodeSummaryPolyline(string? summaryPolyline)
+    {
+        if (string.IsNullOrWhiteSpace(summaryPolyline))
+        {
+            return [];
+        }
+
+        var points = new List<ActivityRoutePoint>();
+        var latitude = 0;
+        var longitude = 0;
+        var index = 0;
+
+        while (index < summaryPolyline.Length)
+        {
+            latitude += DecodePolylineValue(summaryPolyline, ref index);
+            longitude += DecodePolylineValue(summaryPolyline, ref index);
+            points.Add(new ActivityRoutePoint(latitude / 1E5, longitude / 1E5));
+        }
+
+        return SimplifyRoutePoints(points);
+    }
+
+    private static int DecodePolylineValue(string encoded, ref int index)
+    {
+        var result = 0;
+        var shift = 0;
+        int chunk;
+
+        do
+        {
+            chunk = encoded[index++] - 63;
+            result |= (chunk & 0x1F) << shift;
+            shift += 5;
+        }
+        while (chunk >= 0x20 && index < encoded.Length);
+
+        return (result & 1) != 0 ? ~(result >> 1) : result >> 1;
+    }
+
+    private static IReadOnlyList<ActivityRoutePoint> SimplifyRoutePoints(IReadOnlyList<ActivityRoutePoint> points)
+    {
+        if (points.Count <= MaxStoredRoutePoints)
+        {
+            return points;
+        }
+
+        var simplifiedPoints = new List<ActivityRoutePoint>(MaxStoredRoutePoints);
+        var step = (double)(points.Count - 1) / (MaxStoredRoutePoints - 1);
+
+        for (var index = 0; index < MaxStoredRoutePoints; index++)
+        {
+            var sourceIndex = (int)Math.Round(index * step);
+            var clampedIndex = Math.Clamp(sourceIndex, 0, points.Count - 1);
+            simplifiedPoints.Add(points[clampedIndex]);
+        }
+
+        return simplifiedPoints;
     }
 
     private async Task<StravaSession> EnsureActiveSessionAsync(
@@ -747,6 +837,9 @@ public sealed class StravaIntegrationService(string databasePath) : IStravaInteg
         [JsonPropertyName("elapsed_time")]
         public int ElapsedTimeSeconds { get; set; }
 
+        [JsonPropertyName("map")]
+        public StravaActivityMapResponse? Map { get; set; }
+
         [JsonPropertyName("sport_type")]
         public string? SportType { get; set; }
 
@@ -755,5 +848,11 @@ public sealed class StravaIntegrationService(string databasePath) : IStravaInteg
 
         [JsonPropertyName("trainer")]
         public bool? Trainer { get; set; }
+    }
+
+    private sealed class StravaActivityMapResponse
+    {
+        [JsonPropertyName("summary_polyline")]
+        public string? SummaryPolyline { get; set; }
     }
 }

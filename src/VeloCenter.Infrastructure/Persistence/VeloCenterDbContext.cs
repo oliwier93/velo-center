@@ -5,6 +5,7 @@ namespace VeloCenter.Infrastructure.Persistence;
 public sealed class VeloCenterDbContext(DbContextOptions<VeloCenterDbContext> options) : DbContext(options)
 {
     internal DbSet<ActivityRecord> Activities => Set<ActivityRecord>();
+    internal DbSet<ActivityRoutePointRecord> ActivityRoutePoints => Set<ActivityRoutePointRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -28,5 +29,17 @@ public sealed class VeloCenterDbContext(DbContextOptions<VeloCenterDbContext> op
         activity.HasIndex(item => new { item.Source, item.ImportFingerprint })
             .IsUnique()
             .HasFilter("\"ImportFingerprint\" IS NOT NULL");
+
+        var routePoint = modelBuilder.Entity<ActivityRoutePointRecord>();
+
+        routePoint.ToTable("activity_route_points");
+        routePoint.HasKey(item => new { item.ActivityId, item.Sequence });
+        routePoint.Property(item => item.Latitude).IsRequired();
+        routePoint.Property(item => item.Longitude).IsRequired();
+        routePoint.HasIndex(item => item.ActivityId);
+        routePoint.HasOne(item => item.Activity)
+            .WithMany(item => item.RoutePoints)
+            .HasForeignKey(item => item.ActivityId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

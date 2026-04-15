@@ -66,6 +66,43 @@ partial class VeloCenterDbContextModelSnapshot : ModelSnapshot
 
                 b.ToTable("activities", (string)null);
             });
+
+        modelBuilder.Entity("VeloCenter.Infrastructure.Persistence.ActivityRoutePointRecord", b =>
+            {
+                b.Property<Guid>("ActivityId")
+                    .HasColumnType("TEXT");
+
+                b.Property<int>("Sequence")
+                    .HasColumnType("INTEGER");
+
+                b.Property<double>("Latitude")
+                    .HasColumnType("REAL");
+
+                b.Property<double>("Longitude")
+                    .HasColumnType("REAL");
+
+                b.HasKey("ActivityId", "Sequence");
+
+                b.HasIndex("ActivityId");
+
+                b.ToTable("activity_route_points", (string)null);
+            });
+
+        modelBuilder.Entity("VeloCenter.Infrastructure.Persistence.ActivityRoutePointRecord", b =>
+            {
+                b.HasOne("VeloCenter.Infrastructure.Persistence.ActivityRecord", "Activity")
+                    .WithMany("RoutePoints")
+                    .HasForeignKey("ActivityId")
+                    .OnDelete(DeleteBehavior.Cascade)
+                    .IsRequired();
+
+                b.Navigation("Activity");
+            });
+
+        modelBuilder.Entity("VeloCenter.Infrastructure.Persistence.ActivityRecord", b =>
+            {
+                b.Navigation("RoutePoints");
+            });
 #pragma warning restore 612, 618
     }
 }

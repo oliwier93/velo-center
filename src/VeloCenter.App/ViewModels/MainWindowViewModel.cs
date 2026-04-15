@@ -21,6 +21,7 @@ public sealed class MainWindowViewModel : ViewModelBase
     private readonly IActivityRangePreferencesStore _activityRangePreferencesStore;
     private OverviewViewModel _overviewViewModel = null!;
     private WorkoutsViewModel _workoutsViewModel = null!;
+    private HeatmapViewModel _heatmapViewModel = null!;
     private ProgressViewModel _progressViewModel = null!;
     private readonly ImportViewModel _importViewModel;
     private readonly SettingsViewModel _settingsViewModel;
@@ -101,6 +102,11 @@ public sealed class MainWindowViewModel : ViewModelBase
             "Treningi",
             "Biblioteka przejazdow i podglad danych z aktywnosci.",
             "M4,16 C7,11 10,11 13,14 C15,16 17,16 20,8 M5.5,16 A1.5,1.5 0 1 0 5.6,16 M13,14 A1.5,1.5 0 1 0 13.1,14 M20,8 A1.5,1.5 0 1 0 20.1,8");
+        var heatmapNavigationItem = new NavigationItemViewModel(
+            "heatmap",
+            "Heatmap",
+            "Stylizowana mapa natezenia tras z wybranego zakresu.",
+            "M6,6 H18 V18 H6 Z M9,9 C10.8,10.2 12.3,12.1 13.2,13.8 C14.4,16 15.8,16.8 18,15 M10,14 C11.1,14.9 12.4,15.8 14.3,16.8");
         var progressNavigationItem = new NavigationItemViewModel(
             "progress",
             "Podsumowanie",
@@ -121,6 +127,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         [
             _overviewNavigationItem,
             workoutsNavigationItem,
+            heatmapNavigationItem,
             progressNavigationItem,
             _importNavigationItem,
             settingsNavigationItem,
@@ -186,9 +193,13 @@ public sealed class MainWindowViewModel : ViewModelBase
 
     public string CurrentRangeLabel => SelectedRangeOption.Label;
 
-    public bool ShowTopBarRangeSelector => string.Equals(_currentSectionKey, "workouts", StringComparison.Ordinal);
+    public bool ShowTopBarRangeSelector =>
+        string.Equals(_currentSectionKey, "workouts", StringComparison.Ordinal) ||
+        string.Equals(_currentSectionKey, "heatmap", StringComparison.Ordinal);
 
-    public bool UseViewportSectionLayout => string.Equals(_currentSectionKey, "workouts", StringComparison.Ordinal);
+    public bool UseViewportSectionLayout =>
+        string.Equals(_currentSectionKey, "workouts", StringComparison.Ordinal) ||
+        string.Equals(_currentSectionKey, "heatmap", StringComparison.Ordinal);
 
     public bool IsSidebarExpanded
     {
@@ -729,6 +740,7 @@ public sealed class MainWindowViewModel : ViewModelBase
     {
         "overview" => _overviewViewModel,
         "workouts" => _workoutsViewModel,
+        "heatmap" => _heatmapViewModel,
         "progress" => _progressViewModel,
         "import" => _importViewModel,
         "settings" => _settingsViewModel,
@@ -962,6 +974,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         _hasActivities = activities.Count > 0;
         _overviewViewModel = new OverviewViewModel(VeloCenter.Core.Activities.TrainingOverview.FromActivities(activities), activities);
         _workoutsViewModel = new WorkoutsViewModel(GetVisibleWorkoutsActivities(), activities.Count, CurrentRangeLabel);
+        _heatmapViewModel = new HeatmapViewModel(GetVisibleHeatmapRoutes(), CurrentRangeLabel, activities.Count);
         _progressViewModel = new ProgressViewModel(activities);
 
         var selectedNavigationItem = NavigationItems.FirstOrDefault(item => item.IsSelected);
@@ -989,6 +1002,17 @@ public sealed class MainWindowViewModel : ViewModelBase
                 return activityDate >= startDate && activityDate <= endDate;
             }),
         ];
+    }
+
+    private IReadOnlyList<VeloCenter.Core.Activities.ActivityRoute> GetVisibleHeatmapRoutes()
+    {
+        if (_currentRangeSelection.Preset is ActivityRangePreset.All)
+        {
+            return _activityRepository.GetActivityRoutes();
+        }
+
+        var (startDate, endDate) = GetCurrentRangeBounds();
+        return _activityRepository.GetActivityRoutes(startDate, endDate);
     }
 
     private (DateTime StartDate, DateTime EndDate) GetCurrentRangeBounds()

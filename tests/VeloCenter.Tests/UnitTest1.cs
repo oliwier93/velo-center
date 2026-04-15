@@ -50,7 +50,7 @@ public sealed class UnitTest1
             var migrationCount = Convert.ToInt32(command.ExecuteScalar());
 
             Assert.True(File.Exists(databasePath));
-            Assert.Equal(2, migrationCount);
+            Assert.Equal(3, migrationCount);
             Assert.Equal(3, activities.Count);
             Assert.Equal("Sweet spot ride", activities[0].Title);
             Assert.Equal("Endurance spin", activities[1].Title);
@@ -131,14 +131,19 @@ public sealed class UnitTest1
             var firstImport = importService.ImportLocalFile(gpxPath);
             var secondImport = importService.ImportLocalFile(gpxPath);
             var activities = repository.GetRecentActivities();
+            var routes = repository.GetActivityRoutes();
 
             Assert.True(firstImport.WasCreated);
             Assert.False(secondImport.WasCreated);
             Assert.Single(activities);
+            Assert.Single(routes);
             Assert.Equal(VeloCenter.Core.Activities.ActivitySource.GpxFile, activities[0].Source);
             Assert.Equal("Morning Ride", activities[0].Title);
             Assert.Equal(TimeSpan.FromMinutes(30), activities[0].Duration);
             Assert.True(activities[0].DistanceKm > 0.6);
+            Assert.Equal(2, routes[0].Points.Count);
+            Assert.Equal(52.2297, routes[0].Points[0].Latitude, 4);
+            Assert.Equal(21.0222, routes[0].Points[1].Longitude, 4);
         }
         finally
         {
@@ -473,6 +478,35 @@ public sealed class UnitTest1
         Assert.Equal($"{startDate:dd.MM.yyyy} - {endDate:dd.MM.yyyy}", viewModel.CurrentRangeLabel);
         Assert.True(workoutsViewModel.HasNoActivities);
         Assert.Equal("Brak treningow w wybranym zakresie", workoutsViewModel.EmptyLibraryTitle);
+    }
+
+    [Fact]
+    public void HeatmapViewModel_BuildsRoutesAndHighlightsFromActivityRoutes()
+    {
+        VeloCenter.Core.Activities.ActivityRoute[] routes =
+        [
+            new(
+                Guid.NewGuid(),
+                VeloCenter.Core.Activities.ActivitySource.Strava,
+                "Evening Ride",
+                new DateTimeOffset(2026, 4, 10, 18, 0, 0, TimeSpan.Zero),
+                [
+                    new VeloCenter.Core.Activities.ActivityRoutePoint(52.2297, 21.0122),
+                    new VeloCenter.Core.Activities.ActivityRoutePoint(52.2307, 21.0222),
+                    new VeloCenter.Core.Activities.ActivityRoutePoint(52.2317, 21.0322),
+                ]),
+        ];
+
+        var viewModel = new VeloCenter.App.ViewModels.HeatmapViewModel(routes, "Ten rok", totalActivitiesCount: 4);
+
+        Assert.True(viewModel.HasRoutes);
+        Assert.False(viewModel.HasNoRoutes);
+        Assert.Single(viewModel.Routes);
+        Assert.Equal(3, viewModel.Routes[0].Points.Count);
+        Assert.Equal("Trasy na mapie", viewModel.Highlights[0].Label);
+        Assert.Equal("1", viewModel.Highlights[0].Value);
+        Assert.Equal("Punkty tras", viewModel.Highlights[1].Label);
+        Assert.Equal("3", viewModel.Highlights[1].Value);
     }
 
     private static void ExecuteCommand(object target, string commandPropertyName, object? parameter = null)

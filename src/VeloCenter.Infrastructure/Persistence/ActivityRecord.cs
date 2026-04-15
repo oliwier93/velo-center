@@ -23,4 +23,6 @@ internal sealed class ActivityRecord
     public DateTimeOffset? ImportedAt { get; set; }
 
     public DateTimeOffset? LastUpdatedAt { get; set; }
+
+    public List<ActivityRoutePointRecord> RoutePoints { get; set; } = [];
 }
