@@ -1,22 +1,93 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:VeloCenter.App.ViewModels"
-             xmlns:controls="using:VeloCenter.App.Controls"
              x:Class="VeloCenter.App.Views.HeatmapView"
              x:DataType="vm:HeatmapViewModel">
     <Grid RowDefinitions="*,Auto"
           RowSpacing="18"
           VerticalAlignment="Stretch">
-        <Border Padding="18"
-                CornerRadius="28"
-                Background="#0E111D"
+        <Border CornerRadius="28"
+                ClipToBounds="True"
+                Background="#F4F4F2"
                 BorderBrush="{DynamicResource PanelStrokeBrush}"
                 BorderThickness="1">
             <Grid VerticalAlignment="Stretch">
-                <controls:RouteHeatmapControl Routes="{Binding Routes}"
-                                              IsVisible="{Binding HasRoutes}" />
+                <NativeWebView x:Name="VectorMapView"
+                               IsVisible="{Binding HasRoutes}" />
+
+                <StackPanel HorizontalAlignment="Right"
+                            VerticalAlignment="Top"
+                            Margin="18"
+                            Spacing="10"
+                            IsVisible="{Binding HasRoutes}">
+                    <Button Width="44"
+                            Height="44"
+                            Click="ZoomInClicked">
+                        <Button.Styles>
+                            <Style Selector="Button">
+                                <Setter Property="Background" Value="#EC211234" />
+                                <Setter Property="BorderBrush" Value="#4B8459A1" />
+                                <Setter Property="BorderThickness" Value="1" />
+                                <Setter Property="CornerRadius" Value="16" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                                <Setter Property="FontSize" Value="24" />
+                                <Setter Property="FontWeight" Value="SemiBold" />
+                            </Style>
+                            <Style Selector="Button:pointerover">
+                                <Setter Property="Background" Value="#264CEB6E" />
+                            </Style>
+                        </Button.Styles>
+                        <TextBlock HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   Text="+" />
+                    </Button>
+
+                    <Button Width="44"
+                            Height="44"
+                            Click="ZoomOutClicked">
+                        <Button.Styles>
+                            <Style Selector="Button">
+                                <Setter Property="Background" Value="#EC211234" />
+                                <Setter Property="BorderBrush" Value="#4B8459A1" />
+                                <Setter Property="BorderThickness" Value="1" />
+                                <Setter Property="CornerRadius" Value="16" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                                <Setter Property="FontSize" Value="24" />
+                                <Setter Property="FontWeight" Value="SemiBold" />
+                            </Style>
+                            <Style Selector="Button:pointerover">
+                                <Setter Property="Background" Value="#264CEB6E" />
+                            </Style>
+                        </Button.Styles>
+                        <TextBlock HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   Text="−" />
+                    </Button>
+                </StackPanel>
+
+                <Border x:Name="MapStateOverlay"
+                        Padding="22"
+                        Margin="18"
+                        CornerRadius="22"
+                        Background="{DynamicResource PanelBackgroundBrush}"
+                        BorderBrush="{DynamicResource PanelStrokeBrush}"
+                        BorderThickness="1"
+                        VerticalAlignment="Top"
+                        IsVisible="False">
+                    <StackPanel Spacing="6">
+                        <TextBlock x:Name="MapStateTitle"
+                                   FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}" />
+                        <TextBlock x:Name="MapStateDetail"
+                                   FontSize="13"
+                                   Foreground="{DynamicResource TextMutedBrush}"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
 
                 <Border Padding="22"
+                        Margin="18"
                         CornerRadius="22"
                         Background="{DynamicResource PanelBackgroundBrush}"
                         BorderBrush="{DynamicResource PanelStrokeBrush}"
@@ -37,40 +108,46 @@
             </Grid>
         </Border>
 
-        <ItemsControl Grid.Row="1"
-                      HorizontalAlignment="Center"
-                      ItemsSource="{Binding Highlights}">
-            <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <WrapPanel Orientation="Horizontal"
-                               ItemWidth="240" />
-                </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:MetricTileViewModel">
-                    <Border Margin="0,0,14,0"
-                            Padding="16"
-                            CornerRadius="20"
-                            Background="{DynamicResource PanelBackgroundBrush}"
-                            BorderBrush="{DynamicResource PanelStrokeBrush}"
-                            BorderThickness="1">
-                        <StackPanel Spacing="4">
-                            <TextBlock FontSize="13"
-                                       FontWeight="SemiBold"
-                                       Foreground="{DynamicResource TextMutedBrush}"
-                                       Text="{Binding Label}" />
-                            <TextBlock FontSize="28"
-                                       FontWeight="Bold"
-                                       Foreground="{DynamicResource TextPrimaryBrush}"
-                                       Text="{Binding Value}" />
-                            <TextBlock FontSize="12"
-                                       Foreground="{DynamicResource TextSubtleBrush}"
-                                       Text="{Binding Detail}"
-                                       TextWrapping="Wrap" />
-                        </StackPanel>
-                    </Border>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
+        <StackPanel Grid.Row="1"
+                    Spacing="8">
+            <TextBlock HorizontalAlignment="Right"
+                       FontSize="11"
+                       Foreground="{DynamicResource TextSubtleBrush}"
+                       Text="Stadia Maps • OpenMapTiles • OpenStreetMap contributors" />
+            <ItemsControl HorizontalAlignment="Center"
+                          ItemsSource="{Binding Highlights}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal"
+                                   ItemWidth="240" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:MetricTileViewModel">
+                        <Border Margin="0,0,14,0"
+                                Padding="16"
+                                CornerRadius="20"
+                                Background="{DynamicResource PanelBackgroundBrush}"
+                                BorderBrush="{DynamicResource PanelStrokeBrush}"
+                                BorderThickness="1">
+                            <StackPanel Spacing="4">
+                                <TextBlock FontSize="13"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextMutedBrush}"
+                                           Text="{Binding Label}" />
+                                <TextBlock FontSize="28"
+                                           FontWeight="Bold"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                           Text="{Binding Value}" />
+                                <TextBlock FontSize="12"
+                                           Foreground="{DynamicResource TextSubtleBrush}"
+                                           Text="{Binding Detail}"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
     </Grid>
 </UserControl>

@@ -42,6 +42,10 @@ public sealed class HeatmapViewModel : ViewModelBase
 
         var pointCount = Routes.Sum(route => route.Points.Count);
 
+        EmptyDescription = totalActivitiesCount == 0
+            ? "Heatmapa ruszy po imporcie GPX albo po synchronizacji Stravy z zapisana geometria tras."
+            : $"W zakresie {rangeLabel.ToLowerInvariant()} nie ma jeszcze aktywnosci z zapisana geometria trasy.";
+
         Highlights =
         [
             new MetricTileViewModel("Trasy na mapie", Routes.Count.ToString(), $"Zakres: {rangeLabel.ToLowerInvariant()}."),
