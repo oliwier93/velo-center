@@ -460,7 +460,7 @@ public sealed class MainWindowViewModel : ViewModelBase
     {
         if (_stravaIntegrationService.GetConnectionState().IsConnected)
         {
-            await SyncStravaAsync();
+            await SyncStravaAsync(navigateToIntegrations: true);
             return;
         }
 
@@ -468,7 +468,7 @@ public sealed class MainWindowViewModel : ViewModelBase
 
         if (_stravaIntegrationService.GetConnectionState().IsConnected)
         {
-            await SyncStravaAsync();
+            await SyncStravaAsync(navigateToIntegrations: true);
         }
     }
 
@@ -521,9 +521,12 @@ public sealed class MainWindowViewModel : ViewModelBase
         }
     }
 
-    public async Task SyncStravaAsync()
+    public async Task SyncStravaAsync(bool navigateToIntegrations = true)
     {
-        SelectSection(_importNavigationItem);
+        if (navigateToIntegrations)
+        {
+            SelectSection(_importNavigationItem);
+        }
 
         if (!TryStartPipelineTask(
                 PipelineTaskKind.Sync,
@@ -658,7 +661,7 @@ public sealed class MainWindowViewModel : ViewModelBase
     {
         if (_stravaIntegrationService.GetConnectionState().IsConnected)
         {
-            await SyncStravaAsync();
+            await SyncStravaAsync(navigateToIntegrations: false);
             return;
         }
 

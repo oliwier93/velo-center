@@ -3,6 +3,32 @@
              xmlns:vm="using:VeloCenter.App.ViewModels"
              x:Class="VeloCenter.App.Views.SettingsView"
              x:DataType="vm:SettingsViewModel">
+    <UserControl.Styles>
+        <Style Selector="Button.reset-action">
+            <Setter Property="Padding" Value="18,14" />
+            <Setter Property="CornerRadius" Value="20" />
+            <Setter Property="Background" Value="#6B1F2E" />
+            <Setter Property="BorderBrush" Value="#A8455B" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+        <Style Selector="Button.reset-action:pointerover">
+            <Setter Property="Background" Value="#7B2737" />
+            <Setter Property="BorderBrush" Value="#C05C75" />
+        </Style>
+
+        <Style Selector="Button.reset-action:pressed">
+            <Setter Property="Background" Value="#5B1826" />
+        </Style>
+
+        <Style Selector="Button.reset-action:focus-visible">
+            <Setter Property="BorderBrush" Value="#F2A1B8" />
+        </Style>
+    </UserControl.Styles>
+
     <Border MaxWidth="640"
             Padding="24"
             CornerRadius="24"
@@ -32,19 +58,10 @@
                            TextWrapping="Wrap" />
             </Border>
 
-            <Button Click="ResetApplicationClick"
-                    HorizontalAlignment="Left">
-                <Border Padding="18,14"
-                        CornerRadius="20"
-                        Background="#6B1F2E"
-                        BorderBrush="#A8455B"
-                        BorderThickness="1">
-                    <TextBlock FontSize="16"
-                               FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextPrimaryBrush}"
-                               Text="Wyczysc wszystko" />
-                </Border>
-            </Button>
+            <Button Classes="reset-action"
+                    Click="ResetApplicationClick"
+                    HorizontalAlignment="Left"
+                    Content="Wyczysc wszystko" />
         </StackPanel>
     </Border>
 </UserControl>

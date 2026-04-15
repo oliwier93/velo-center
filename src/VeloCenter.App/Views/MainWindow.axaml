@@ -117,8 +117,7 @@
                                     Command="{Binding ActivateCommand}"
                                     CommandParameter="{Binding .}"
                                     HorizontalAlignment="Stretch"
-                                    HorizontalContentAlignment="Stretch"
-                                    ToolTip.Tip="{Binding Title}">
+                                    HorizontalContentAlignment="Stretch">
                                 <Border Background="{Binding $parent[Button].Background}">
                                     <Grid Height="60"
                                           ColumnDefinitions="4,*">
@@ -258,7 +257,7 @@
 
                         <Button Classes="toolbar-button"
                                 Command="{Binding SyncCommand}"
-                                ToolTip.Tip="Odswiez widok bez uruchamiania loadera">
+                                ToolTip.Tip="Synchronizuj polaczone integracje">
                             <Border Width="44"
                                     Height="44"
                                     CornerRadius="16"

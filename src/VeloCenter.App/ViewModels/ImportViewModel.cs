@@ -3,14 +3,15 @@ namespace VeloCenter.App.ViewModels;
 public sealed class ImportViewModel : ViewModelBase
 {
     private string _importStatus = string.Empty;
-    private string _stravaStatusTitle = "Strava nie jest jeszcze polaczona.";
-    private string _stravaStatusDetail = "Wpisz dane swojej aplikacji Strava i polacz konto przez przegladarke.";
+    private string _stravaStatusTitle = string.Empty;
+    private string _stravaStatusDetail = string.Empty;
     private string _stravaClientId = string.Empty;
     private string _stravaClientSecret = string.Empty;
     private bool _isStravaConfigured;
     private bool _isStravaConnected;
     private bool _canSyncStrava;
     private bool _isStravaBusy;
+    private bool _showStravaStatusCard;
 
     public string AcceptedExtensionsLabel { get; } = "Akceptowane: .fit, .fit.gz, .gpx";
 
@@ -64,6 +65,12 @@ public sealed class ImportViewModel : ViewModelBase
     {
         get => _stravaStatusDetail;
         private set => SetProperty(ref _stravaStatusDetail, value);
+    }
+
+    public bool ShowStravaStatusCard
+    {
+        get => _showStravaStatusCard;
+        private set => SetProperty(ref _showStravaStatusCard, value);
     }
 
     public bool CanSyncStrava
@@ -179,8 +186,9 @@ public sealed class ImportViewModel : ViewModelBase
 
         if (!state.IsConfigured)
         {
-            StravaStatusTitle = "Dodaj dane swojej aplikacji Strava";
-            StravaStatusDetail = "Wklej Client ID i Client Secret, a potem polacz konto w przegladarce. Callback domain ustaw na 127.0.0.1.";
+            StravaStatusTitle = string.Empty;
+            StravaStatusDetail = string.Empty;
+            ShowStravaStatusCard = false;
             CanSyncStrava = false;
             return;
         }
@@ -189,6 +197,7 @@ public sealed class ImportViewModel : ViewModelBase
         {
             StravaStatusTitle = "Strava gotowa do polaczenia";
             StravaStatusDetail = "Dane aplikacji zapisane. Kliknij polaczenie, zeby otworzyc przegladarke i zatwierdzic dostep.";
+            ShowStravaStatusCard = true;
             CanSyncStrava = false;
             return;
         }
@@ -199,6 +208,7 @@ public sealed class ImportViewModel : ViewModelBase
         StravaStatusDetail = state.LastSyncedAt is null
             ? "Konto jest gotowe. Pierwsza synchronizacja pobierze tylko aktywnosci rowerowe outdoor."
             : $"Ostatnia synchronizacja roweru outdoor: {state.LastSyncedAt.Value.ToLocalTime():dd.MM.yyyy HH:mm}";
+        ShowStravaStatusCard = true;
         CanSyncStrava = true;
     }
 
@@ -214,11 +224,13 @@ public sealed class ImportViewModel : ViewModelBase
     {
         StravaStatusTitle = "Trwa synchronizacja Stravy";
         StravaStatusDetail = progress.Message;
+        ShowStravaStatusCard = true;
     }
 
     public void SetStravaError(string message)
     {
         StravaStatusTitle = "Problem ze Strava";
         StravaStatusDetail = message;
+        ShowStravaStatusCard = true;
     }
 }

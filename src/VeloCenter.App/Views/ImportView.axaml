@@ -51,37 +51,31 @@
                            Text="Wklej Client ID i Client Secret swojej aplikacji Strava. Po kliknieciu otworzy sie przegladarka z autoryzacja."
                            TextWrapping="Wrap" />
 
-                <Grid ColumnDefinitions="1*,3*"
-                      RowDefinitions="Auto"
-                      ColumnSpacing="10"
-                      RowSpacing="10"
-                      IsVisible="{Binding ShowStravaCredentials}">
-                    <StackPanel Grid.Row="0"
-                                Grid.Column="0"
-                                Spacing="4">
+                <StackPanel Spacing="10"
+                            IsVisible="{Binding ShowStravaCredentials}">
+                    <StackPanel Spacing="4">
                         <TextBlock FontSize="12"
                                    Foreground="{DynamicResource TextSubtleBrush}"
                                    Text="Client ID" />
                         <TextBox Text="{Binding StravaClientId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                 PlaceholderText="np. 162592" />
+                                 PlaceholderText="Wklej client ID" />
                     </StackPanel>
 
-                    <StackPanel Grid.Row="0"
-                                Grid.Column="1"
-                                Spacing="4">
+                    <StackPanel Spacing="4">
                         <TextBlock FontSize="12"
                                    Foreground="{DynamicResource TextSubtleBrush}"
                                    Text="Client Secret" />
                         <TextBox Text="{Binding StravaClientSecret, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                  PlaceholderText="Wklej client secret" />
                     </StackPanel>
-                </Grid>
+                </StackPanel>
 
                 <Border Padding="14"
                         CornerRadius="18"
                         Background="{DynamicResource PanelBackgroundBrush}"
                         BorderBrush="{DynamicResource PanelStrokeBrush}"
-                        BorderThickness="1">
+                        BorderThickness="1"
+                        IsVisible="{Binding ShowStravaStatusCard}">
                     <StackPanel Spacing="4">
                         <TextBlock FontSize="15"
                                    FontWeight="SemiBold"
