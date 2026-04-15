@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using System.ComponentModel;
 using VeloCenter.App.Models;
 using VeloCenter.App.ViewModels;
 
@@ -10,11 +11,17 @@ public partial class MainWindow : Window
 {
     private bool _isRangeSelectorReady;
     private bool _isApplyingRangeSelection;
+    private MainWindowViewModel? _mainWindowViewModel;
 
     public MainWindow()
     {
         InitializeComponent();
-        Opened += (_, _) => _isRangeSelectorReady = true;
+        DataContextChanged += OnDataContextChanged;
+        Opened += (_, _) =>
+        {
+            _isRangeSelectorReady = true;
+            UpdateSectionHostLayout();
+        };
     }
 
     private void SidebarPointerEntered(object? sender, PointerEventArgs e)
@@ -77,5 +84,56 @@ public partial class MainWindow : Window
         {
             _isApplyingRangeSelection = false;
         }
+    }
+
+    private void OnDataContextChanged(object? sender, System.EventArgs e)
+    {
+        if (_mainWindowViewModel is not null)
+        {
+            _mainWindowViewModel.PropertyChanged -= OnMainWindowViewModelPropertyChanged;
+        }
+
+        _mainWindowViewModel = DataContext as MainWindowViewModel;
+
+        if (_mainWindowViewModel is not null)
+        {
+            _mainWindowViewModel.PropertyChanged += OnMainWindowViewModelPropertyChanged;
+        }
+
+        UpdateSectionHostLayout();
+    }
+
+    private void OnMainWindowViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(MainWindowViewModel.CurrentSectionViewModel) or nameof(MainWindowViewModel.UseViewportSectionLayout))
+        {
+            UpdateSectionHostLayout();
+        }
+    }
+
+    private void UpdateSectionHostLayout()
+    {
+        if (_mainWindowViewModel is null)
+        {
+            StandardSectionHost.Content = null;
+            StandardSectionScrollViewer.IsVisible = false;
+            ViewportSectionHost.Content = null;
+            ViewportSectionHostContainer.IsVisible = false;
+            return;
+        }
+
+        if (_mainWindowViewModel.UseViewportSectionLayout)
+        {
+            StandardSectionHost.Content = null;
+            StandardSectionScrollViewer.IsVisible = false;
+            ViewportSectionHost.Content = _mainWindowViewModel.CurrentSectionViewModel;
+            ViewportSectionHostContainer.IsVisible = true;
+            return;
+        }
+
+        ViewportSectionHost.Content = null;
+        ViewportSectionHostContainer.IsVisible = false;
+        StandardSectionHost.Content = _mainWindowViewModel.CurrentSectionViewModel;
+        StandardSectionScrollViewer.IsVisible = true;
     }
 }

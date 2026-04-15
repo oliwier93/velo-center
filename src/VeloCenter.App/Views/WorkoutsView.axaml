@@ -24,143 +24,104 @@
         </Style>
     </UserControl.Styles>
 
-    <StackPanel Spacing="24">
-        <ItemsControl ItemsSource="{Binding Highlights}">
-            <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <WrapPanel Orientation="Horizontal"
-                               ItemWidth="240" />
-                </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-
-            <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:MetricTileViewModel">
-                    <Border Width="240"
-                            Margin="0,0,16,16"
-                            Padding="18"
-                            CornerRadius="22"
-                            Background="{DynamicResource PanelStrongBackgroundBrush}"
-                            BorderBrush="{DynamicResource PanelStrokeBrush}"
-                            BorderThickness="1">
-                        <StackPanel Spacing="8">
-                            <TextBlock FontSize="13"
-                                       Foreground="{DynamicResource TextSubtleBrush}"
-                                       Text="{Binding Label}" />
-                            <TextBlock FontSize="28"
-                                       FontWeight="Bold"
-                                       Foreground="{DynamicResource TextPrimaryBrush}"
-                                       Text="{Binding Value}" />
-                            <TextBlock FontSize="13"
-                                       Foreground="{DynamicResource TextMutedBrush}"
-                                       Text="{Binding Detail}"
-                                       TextWrapping="Wrap" />
-                        </StackPanel>
-                    </Border>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
-
-        <Border Padding="22"
-                CornerRadius="24"
-                Background="{DynamicResource PanelStrongBackgroundBrush}"
+    <Grid RowDefinitions="*,Auto"
+          RowSpacing="12"
+          VerticalAlignment="Stretch">
+        <Border Padding="16"
+                CornerRadius="18"
+                Background="{DynamicResource PanelBackgroundBrush}"
                 BorderBrush="{DynamicResource PanelStrokeBrush}"
-                BorderThickness="1">
-            <StackPanel Spacing="16">
-                <TextBlock FontSize="24"
-                           FontWeight="Bold"
+                BorderThickness="1"
+                VerticalAlignment="Top"
+                IsVisible="{Binding HasNoActivities}">
+            <StackPanel Spacing="6">
+                <TextBlock FontSize="18"
+                           FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
-                           Text="Biblioteka aktywnosci" />
-
-                <Border Padding="18"
-                        CornerRadius="18"
-                        Background="{DynamicResource PanelBackgroundBrush}"
-                        BorderBrush="{DynamicResource PanelStrokeBrush}"
-                        BorderThickness="1"
-                        IsVisible="{Binding HasNoActivities}">
-                    <StackPanel Spacing="6">
-                        <TextBlock FontSize="18"
-                                   FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TextPrimaryBrush}"
-                                   Text="{Binding EmptyLibraryTitle}" />
-                        <TextBlock FontSize="13"
-                                   Foreground="{DynamicResource TextMutedBrush}"
-                                   Text="{Binding EmptyLibraryDescription}"
-                                   TextWrapping="Wrap" />
-                    </StackPanel>
-                </Border>
-
-                <ScrollViewer MaxHeight="660"
-                              VerticalScrollBarVisibility="Auto"
-                              HorizontalScrollBarVisibility="Disabled"
-                              IsVisible="{Binding HasActivities}">
-                    <StackPanel Spacing="4">
-                        <ItemsControl ItemsSource="{Binding RideLibrary}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="vm:RecentRideViewModel">
-                                    <Border Margin="0,0,0,12"
-                                            Padding="16"
-                                            CornerRadius="18"
-                                            Background="{DynamicResource PanelBackgroundBrush}"
-                                            BorderBrush="{DynamicResource PanelStrokeBrush}"
-                                            BorderThickness="1">
-                                        <Grid ColumnDefinitions="*,Auto"
-                                              ColumnSpacing="16">
-                                            <StackPanel Spacing="4">
-                                                <TextBlock FontSize="18"
-                                                           FontWeight="SemiBold"
-                                                           Foreground="{DynamicResource TextPrimaryBrush}"
-                                                           Text="{Binding Title}" />
-                                                <TextBlock FontSize="13"
-                                                           Foreground="{DynamicResource TextSubtleBrush}"
-                                                           Text="{Binding StartDateLabel}" />
-                                            </StackPanel>
-
-                                            <StackPanel HorizontalAlignment="Right"
-                                                        Spacing="4">
-                                                <TextBlock FontSize="18"
-                                                           FontWeight="SemiBold"
-                                                           Foreground="{DynamicResource TextPrimaryBrush}"
-                                                           HorizontalAlignment="Right"
-                                                           Text="{Binding DistanceLabel}" />
-                                                <TextBlock FontSize="13"
-                                                           Foreground="{DynamicResource TextSubtleBrush}"
-                                                           HorizontalAlignment="Right"
-                                                           Text="{Binding DurationLabel}" />
-                                                <TextBlock FontSize="13"
-                                                           Foreground="{DynamicResource AccentRoseBrush}"
-                                                           HorizontalAlignment="Right"
-                                                           Text="{Binding SourceLabel}" />
-                                            </StackPanel>
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-
-                        <Grid ColumnDefinitions="Auto,*,Auto"
-                              ColumnSpacing="16"
-                              Margin="0,4,0,8"
-                              IsVisible="{Binding HasPagination}">
-                            <Button Classes="pagination-button"
-                                    Command="{Binding PreviousPageCommand}"
-                                    Content="Poprzednia" />
-
-                            <TextBlock Grid.Column="1"
-                                       VerticalAlignment="Center"
-                                       HorizontalAlignment="Center"
-                                       FontSize="13"
-                                       FontWeight="SemiBold"
-                                       Foreground="{DynamicResource TextSubtleBrush}"
-                                       Text="{Binding PaginationLabel}" />
-
-                            <Button Grid.Column="2"
-                                    Classes="pagination-button"
-                                    Command="{Binding NextPageCommand}"
-                                    Content="Nastepna" />
-                        </Grid>
-                    </StackPanel>
-                </ScrollViewer>
+                           Text="{Binding EmptyLibraryTitle}" />
+                <TextBlock FontSize="13"
+                           Foreground="{DynamicResource TextMutedBrush}"
+                           Text="{Binding EmptyLibraryDescription}"
+                           TextWrapping="Wrap" />
             </StackPanel>
         </Border>
-    </StackPanel>
+
+        <Border Grid.Row="0"
+                Padding="14"
+                CornerRadius="22"
+                Background="#0CFFFFFF"
+                BorderBrush="{DynamicResource PanelStrokeBrush}"
+                BorderThickness="1"
+                IsVisible="{Binding HasActivities}">
+            <ScrollViewer VerticalAlignment="Stretch"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled">
+                <ItemsControl ItemsSource="{Binding RideLibrary}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:RecentRideViewModel">
+                            <Border Margin="0,0,0,10"
+                                    Padding="14"
+                                    CornerRadius="18"
+                                    Background="{DynamicResource PanelBackgroundBrush}"
+                                    BorderBrush="{DynamicResource PanelStrokeBrush}"
+                                    BorderThickness="1">
+                                <Grid ColumnDefinitions="*,Auto"
+                                      ColumnSpacing="16">
+                                    <StackPanel Spacing="3">
+                                        <TextBlock FontSize="17"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                                   Text="{Binding Title}" />
+                                        <TextBlock FontSize="13"
+                                                   Foreground="{DynamicResource TextSubtleBrush}"
+                                                   Text="{Binding StartDateLabel}" />
+                                    </StackPanel>
+
+                                    <StackPanel HorizontalAlignment="Right"
+                                                Spacing="3">
+                                        <TextBlock FontSize="17"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                                   HorizontalAlignment="Right"
+                                                   Text="{Binding DistanceLabel}" />
+                                        <TextBlock FontSize="13"
+                                                   Foreground="{DynamicResource TextSubtleBrush}"
+                                                   HorizontalAlignment="Right"
+                                                   Text="{Binding DurationLabel}" />
+                                        <TextBlock FontSize="13"
+                                                   Foreground="{DynamicResource AccentRoseBrush}"
+                                                   HorizontalAlignment="Right"
+                                                   Text="{Binding SourceLabel}" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
+
+        <Grid Grid.Row="1"
+              ColumnDefinitions="Auto,*,Auto"
+              ColumnSpacing="16"
+              Margin="0,0,0,4"
+              IsVisible="{Binding HasPagination}">
+            <Button Classes="pagination-button"
+                    Command="{Binding PreviousPageCommand}"
+                    Content="Poprzednia" />
+
+            <TextBlock Grid.Column="1"
+                       VerticalAlignment="Center"
+                       HorizontalAlignment="Center"
+                       FontSize="13"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextSubtleBrush}"
+                       Text="{Binding PaginationLabel}" />
+
+            <Button Grid.Column="2"
+                    Classes="pagination-button"
+                    Command="{Binding NextPageCommand}"
+                    Content="Nastepna" />
+        </Grid>
+    </Grid>
 </UserControl>

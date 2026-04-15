@@ -188,6 +188,8 @@ public sealed class MainWindowViewModel : ViewModelBase
 
     public bool ShowTopBarRangeSelector => string.Equals(_currentSectionKey, "workouts", StringComparison.Ordinal);
 
+    public bool UseViewportSectionLayout => string.Equals(_currentSectionKey, "workouts", StringComparison.Ordinal);
+
     public bool IsSidebarExpanded
     {
         get => _isSidebarExpanded;
@@ -710,6 +712,7 @@ public sealed class MainWindowViewModel : ViewModelBase
 
         _currentSectionKey = item.Key;
         OnPropertyChanged(nameof(ShowTopBarRangeSelector));
+        OnPropertyChanged(nameof(UseViewportSectionLayout));
         CurrentSectionTitle = item.Title;
         CurrentSectionDescription = item.Description;
         CurrentSectionViewModel = ResolveSection(item.Key);

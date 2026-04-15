@@ -74,7 +74,7 @@ public sealed class WorkoutsViewModel : ViewModelBase
 
     public int TotalPages => Math.Max(1, (int)Math.Ceiling((double)_allRideLibrary.Count / PageSize));
 
-    public bool HasPagination => _allRideLibrary.Count > PageSize;
+    public bool HasPagination => HasActivities;
 
     public bool CanGoPreviousPage => HasPagination && CurrentPage > 1;
 
@@ -84,7 +84,7 @@ public sealed class WorkoutsViewModel : ViewModelBase
     {
         get
         {
-            if (!HasPagination)
+            if (!HasActivities)
             {
                 return string.Empty;
             }

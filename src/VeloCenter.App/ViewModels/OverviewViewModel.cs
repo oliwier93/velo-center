@@ -19,18 +19,8 @@ public sealed class OverviewViewModel : ViewModelBase
         [
             .. activities
                 .OrderByDescending(activity => activity.StartTime)
+                .Take(3)
                 .Select(activity => new RecentRideViewModel(activity)),
-        ];
-
-        NextSteps =
-        [
-            new InfoCardViewModel("Baza danych", "SQLite + EF Core", HasActivities
-                ? "Trwaly magazyn jest gotowy na prawdziwe importy."
-                : "Baza startuje pusta, wiec od razu widac realny stan aplikacji."),
-            new InfoCardViewModel("Pierwszy importer", "FIT albo GPX", HasActivities
-                ? "Lokalny import zapisuje juz dane do SQLite i odswieza widoki."
-                : "Wybierz plik w sekcji integracje, aby zapisac pierwsza aktywnosc."),
-            new InfoCardViewModel("Analiza", "Trendy tygodniowe", "Dodaj wykresy objetosci, dystansu i czasu."),
         ];
     }
 
@@ -41,6 +31,4 @@ public sealed class OverviewViewModel : ViewModelBase
     public IReadOnlyList<MetricTileViewModel> Metrics { get; }
 
     public IReadOnlyList<RecentRideViewModel> RecentActivities { get; }
-
-    public IReadOnlyList<InfoCardViewModel> NextSteps { get; }
 }

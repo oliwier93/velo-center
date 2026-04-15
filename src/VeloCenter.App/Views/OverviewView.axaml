@@ -38,123 +38,79 @@
             </ItemsControl.ItemTemplate>
         </ItemsControl>
 
-        <Grid ColumnDefinitions="2*,*"
-              ColumnSpacing="24">
-            <Border Padding="22"
-                    CornerRadius="24"
-                    Background="{DynamicResource PanelStrongBackgroundBrush}"
-                    BorderBrush="{DynamicResource PanelStrokeBrush}"
-                    BorderThickness="1">
-                <StackPanel Spacing="16">
-                    <TextBlock FontSize="24"
-                               FontWeight="Bold"
-                               Foreground="{DynamicResource TextPrimaryBrush}"
-                               Text="Ostatnie przejazdy" />
+        <Border Padding="22"
+                CornerRadius="24"
+                Background="{DynamicResource PanelStrongBackgroundBrush}"
+                BorderBrush="{DynamicResource PanelStrokeBrush}"
+                BorderThickness="1">
+            <StackPanel Spacing="16">
+                <TextBlock FontSize="24"
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           Text="Ostatnie przejazdy" />
 
-                    <Border Padding="18"
-                            CornerRadius="18"
-                            Background="{DynamicResource PanelBackgroundBrush}"
-                            BorderBrush="{DynamicResource PanelStrokeBrush}"
-                            BorderThickness="1"
-                            IsVisible="{Binding HasNoActivities}">
-                        <StackPanel Spacing="6">
-                            <TextBlock FontSize="18"
-                                       FontWeight="SemiBold"
-                                       Foreground="{DynamicResource TextPrimaryBrush}"
-                                       Text="Baza jest jeszcze pusta" />
-                            <TextBlock FontSize="13"
-                                       Foreground="{DynamicResource TextMutedBrush}"
-                                       Text="To jest celowy pusty stan. Przejdz do integracji i wybierz pierwszy plik FIT albo GPX, zeby zapisac pierwsza aktywnosc."
-                                       TextWrapping="Wrap" />
-                        </StackPanel>
-                    </Border>
+                <Border Padding="18"
+                        CornerRadius="18"
+                        Background="{DynamicResource PanelBackgroundBrush}"
+                        BorderBrush="{DynamicResource PanelStrokeBrush}"
+                        BorderThickness="1"
+                        IsVisible="{Binding HasNoActivities}">
+                    <StackPanel Spacing="6">
+                        <TextBlock FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   Text="Baza jest jeszcze pusta" />
+                        <TextBlock FontSize="13"
+                                   Foreground="{DynamicResource TextMutedBrush}"
+                                   Text="To jest celowy pusty stan. Przejdz do integracji i wybierz pierwszy plik FIT albo GPX, zeby zapisac pierwsza aktywnosc."
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
 
-                    <ItemsControl ItemsSource="{Binding RecentActivities}"
-                                  IsVisible="{Binding HasActivities}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="vm:RecentRideViewModel">
-                                <Border Margin="0,0,0,12"
-                                        Padding="16"
-                                        CornerRadius="18"
-                                        Background="{DynamicResource PanelBackgroundBrush}"
-                                        BorderBrush="{DynamicResource PanelStrokeBrush}"
-                                        BorderThickness="1">
-                                    <Grid ColumnDefinitions="*,Auto"
-                                          ColumnSpacing="16">
-                                        <StackPanel Spacing="4">
-                                            <TextBlock FontSize="18"
-                                                       FontWeight="SemiBold"
-                                                       Foreground="{DynamicResource TextPrimaryBrush}"
-                                                       Text="{Binding Title}" />
-                                            <TextBlock FontSize="13"
-                                                       Foreground="{DynamicResource TextSubtleBrush}"
-                                                       Text="{Binding StartDateLabel}" />
-                                        </StackPanel>
-
-                                        <StackPanel HorizontalAlignment="Right"
-                                                    Spacing="4">
-                                            <TextBlock FontSize="18"
-                                                       FontWeight="SemiBold"
-                                                       Foreground="{DynamicResource TextPrimaryBrush}"
-                                                       HorizontalAlignment="Right"
-                                                       Text="{Binding DistanceLabel}" />
-                                            <TextBlock FontSize="13"
-                                                       Foreground="{DynamicResource TextSubtleBrush}"
-                                                       HorizontalAlignment="Right"
-                                                       Text="{Binding DurationLabel}" />
-                                            <TextBlock FontSize="13"
-                                                       Foreground="{DynamicResource AccentRoseBrush}"
-                                                       HorizontalAlignment="Right"
-                                                       Text="{Binding SourceLabel}" />
-                                        </StackPanel>
-                                    </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </StackPanel>
-            </Border>
-
-            <Border Grid.Column="1"
-                    Padding="22"
-                    CornerRadius="24"
-                    Background="{DynamicResource PanelStrongBackgroundBrush}"
-                    BorderBrush="{DynamicResource PanelStrokeBrush}"
-                    BorderThickness="1">
-                <StackPanel Spacing="16">
-                    <TextBlock FontSize="24"
-                               FontWeight="Bold"
-                               Foreground="{DynamicResource TextPrimaryBrush}"
-                               Text="Nastepne kroki" />
-
-                    <ItemsControl ItemsSource="{Binding NextSteps}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="vm:InfoCardViewModel">
-                                <Border Margin="0,0,0,12"
-                                        Padding="16"
-                                        CornerRadius="18"
-                                        Background="{DynamicResource PanelBackgroundBrush}"
-                                        BorderBrush="{DynamicResource PanelStrokeBrush}"
-                                        BorderThickness="1">
-                                    <StackPanel Spacing="6">
-                                        <TextBlock FontSize="12"
-                                                   Foreground="{DynamicResource TextSubtleBrush}"
-                                                   Text="{Binding Title}" />
+                <ItemsControl ItemsSource="{Binding RecentActivities}"
+                              IsVisible="{Binding HasActivities}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:RecentRideViewModel">
+                            <Border Margin="0,0,0,12"
+                                    Padding="16"
+                                    CornerRadius="18"
+                                    Background="{DynamicResource PanelBackgroundBrush}"
+                                    BorderBrush="{DynamicResource PanelStrokeBrush}"
+                                    BorderThickness="1">
+                                <Grid ColumnDefinitions="*,Auto"
+                                      ColumnSpacing="16">
+                                    <StackPanel Spacing="4">
                                         <TextBlock FontSize="18"
                                                    FontWeight="SemiBold"
                                                    Foreground="{DynamicResource TextPrimaryBrush}"
-                                                   Text="{Binding Value}" />
+                                                   Text="{Binding Title}" />
                                         <TextBlock FontSize="13"
-                                                   Foreground="{DynamicResource TextMutedBrush}"
-                                                   Text="{Binding Description}"
-                                                   TextWrapping="Wrap" />
+                                                   Foreground="{DynamicResource TextSubtleBrush}"
+                                                   Text="{Binding StartDateLabel}" />
                                     </StackPanel>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </StackPanel>
-            </Border>
-        </Grid>
+
+                                    <StackPanel HorizontalAlignment="Right"
+                                                Spacing="4">
+                                        <TextBlock FontSize="18"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                                   HorizontalAlignment="Right"
+                                                   Text="{Binding DistanceLabel}" />
+                                        <TextBlock FontSize="13"
+                                                   Foreground="{DynamicResource TextSubtleBrush}"
+                                                   HorizontalAlignment="Right"
+                                                   Text="{Binding DurationLabel}" />
+                                        <TextBlock FontSize="13"
+                                                   Foreground="{DynamicResource AccentRoseBrush}"
+                                                   HorizontalAlignment="Right"
+                                                   Text="{Binding SourceLabel}" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </Border>
     </StackPanel>
 </UserControl>

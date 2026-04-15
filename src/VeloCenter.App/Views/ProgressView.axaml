@@ -33,106 +33,95 @@
             </StackPanel>
         </Border>
 
-        <Border Padding="22"
-                CornerRadius="24"
-                Background="{DynamicResource PanelStrongBackgroundBrush}"
-                BorderBrush="{DynamicResource PanelStrokeBrush}"
-                BorderThickness="1"
-                IsVisible="{Binding HasActivities}">
-            <StackPanel Spacing="10">
-                <TextBlock FontSize="13"
-                           Foreground="{DynamicResource TextMutedBrush}"
-                           Text="{Binding ChartSummary}"
-                           TextWrapping="Wrap" />
+        <StackPanel Spacing="10"
+                    IsVisible="{Binding HasActivities}">
+            <Grid HorizontalAlignment="Stretch">
+                <controls:AnnualProgressChart Height="{Binding ChartContentHeight}"
+                                              HorizontalAlignment="Stretch"
+                                              AnnualSeries="{Binding VisibleAnnualSeries}"
+                                              DistanceTicks="{Binding DistanceTicks}"
+                                              MonthLabels="{Binding MonthLabels}"
+                                              PlotWidthReference="{Binding PlotWidth}"
+                                              PlotHeightReference="{Binding PlotHeight}"
+                                              AxisWidthReference="{Binding AxisWidth}"
+                                              MonthAxisHeightReference="{Binding MonthAxisHeight}" />
+            </Grid>
 
-                <Grid HorizontalAlignment="Stretch">
-                    <controls:AnnualProgressChart Height="{Binding ChartContentHeight}"
-                                                  HorizontalAlignment="Stretch"
-                                                  AnnualSeries="{Binding VisibleAnnualSeries}"
-                                                  DistanceTicks="{Binding DistanceTicks}"
-                                                  MonthLabels="{Binding MonthLabels}"
-                                                  PlotWidthReference="{Binding PlotWidth}"
-                                                  PlotHeightReference="{Binding PlotHeight}"
-                                                  AxisWidthReference="{Binding AxisWidth}"
-                                                  MonthAxisHeightReference="{Binding MonthAxisHeight}" />
-                </Grid>
+            <ItemsControl ItemsSource="{Binding AnnualSeries}"
+                          HorizontalAlignment="Center"
+                          Margin="0,0,0,0">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal"
+                                   HorizontalAlignment="Center" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
 
-                <ItemsControl ItemsSource="{Binding AnnualSeries}"
-                              HorizontalAlignment="Center"
-                              Margin="0,0,0,0">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <WrapPanel Orientation="Horizontal"
-                                       HorizontalAlignment="Center" />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ProgressYearSeriesViewModel">
+                            <Button Classes="legend-toggle"
+                                    Margin="0,0,14,4"
+                                    Command="{Binding ToggleVisibilityCommand}"
+                                    Opacity="{Binding LegendOpacity}">
+                                <Grid ColumnDefinitions="Auto,*"
+                                      ColumnSpacing="10">
+                                <Border Width="12"
+                                        Height="12"
+                                        Margin="0,4,0,0"
+                                        CornerRadius="6"
+                                        Background="{Binding Stroke}" />
 
-                    <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="vm:ProgressYearSeriesViewModel">
-                                <Button Classes="legend-toggle"
-                                        Margin="0,0,14,4"
-                                        Command="{Binding ToggleVisibilityCommand}"
-                                        Opacity="{Binding LegendOpacity}">
-                                    <Grid ColumnDefinitions="Auto,*"
-                                          ColumnSpacing="10">
-                                    <Border Width="12"
-                                            Height="12"
-                                            Margin="0,4,0,0"
-                                            CornerRadius="6"
-                                            Background="{Binding Stroke}" />
-
-                                    <StackPanel Grid.Column="1"
-                                                Spacing="2">
-                                        <TextBlock FontSize="16"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="{DynamicResource TextPrimaryBrush}"
-                                                   Text="{Binding YearLabel}" />
-                                        <TextBlock FontSize="12"
-                                                   Foreground="{DynamicResource TextMutedBrush}"
-                                                   Text="{Binding TotalDistanceLabel}" />
-                                    </StackPanel>
-                                </Grid>
-                            </Button>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-
-                <ItemsControl ItemsSource="{Binding Highlights}"
-                              HorizontalAlignment="Center">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <WrapPanel Orientation="Horizontal"
-                                       HorizontalAlignment="Center" />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:MetricTileViewModel">
-                            <Border Width="240"
-                                    Margin="0,4,14,0"
-                                    Padding="18"
-                                    CornerRadius="22"
-                                    Background="{DynamicResource PanelBackgroundBrush}"
-                                    BorderBrush="{DynamicResource PanelStrokeBrush}"
-                                    BorderThickness="1">
-                                <StackPanel Spacing="8">
-                                    <TextBlock FontSize="13"
-                                               Foreground="{DynamicResource TextSubtleBrush}"
-                                               Text="{Binding Label}" />
-                                    <TextBlock FontSize="28"
-                                               FontWeight="Bold"
+                                <StackPanel Grid.Column="1"
+                                            Spacing="2">
+                                    <TextBlock FontSize="16"
+                                               FontWeight="SemiBold"
                                                Foreground="{DynamicResource TextPrimaryBrush}"
-                                               Text="{Binding Value}" />
-                                    <TextBlock FontSize="13"
+                                               Text="{Binding YearLabel}" />
+                                    <TextBlock FontSize="12"
                                                Foreground="{DynamicResource TextMutedBrush}"
-                                               Text="{Binding Detail}"
-                                               TextWrapping="Wrap" />
+                                               Text="{Binding TotalDistanceLabel}" />
                                 </StackPanel>
-                            </Border>
+                            </Grid>
+                        </Button>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-            </StackPanel>
-        </Border>
+
+            <ItemsControl ItemsSource="{Binding Highlights}"
+                          HorizontalAlignment="Center">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal"
+                                   HorizontalAlignment="Center" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:MetricTileViewModel">
+                        <Border Width="240"
+                                Margin="0,4,14,0"
+                                Padding="18"
+                                CornerRadius="22"
+                                Background="{DynamicResource PanelBackgroundBrush}"
+                                BorderBrush="{DynamicResource PanelStrokeBrush}"
+                                BorderThickness="1">
+                            <StackPanel Spacing="8">
+                                <TextBlock FontSize="13"
+                                           Foreground="{DynamicResource TextSubtleBrush}"
+                                           Text="{Binding Label}" />
+                                <TextBlock FontSize="28"
+                                           FontWeight="Bold"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                           Text="{Binding Value}" />
+                                <TextBlock FontSize="13"
+                                           Foreground="{DynamicResource TextMutedBrush}"
+                                           Text="{Binding Detail}"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
     </StackPanel>
 </UserControl>

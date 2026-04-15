@@ -264,26 +264,77 @@
                             CornerRadius="160"
                             Background="#22D24CFF"
                             Canvas.Left="36"
-                            Canvas.Top="-70" />
+                            Canvas.Top="-70">
+                        <Border.Effect>
+                            <BlurEffect Radius="70" />
+                        </Border.Effect>
+                    </Border>
                     <Border Width="440"
                             Height="440"
                             CornerRadius="220"
                             Background="#1EDD68D4"
                             Canvas.Right="-120"
-                            Canvas.Bottom="-110" />
+                            Canvas.Bottom="-110">
+                        <Border.Effect>
+                            <BlurEffect Radius="96" />
+                        </Border.Effect>
+                    </Border>
                     <Border Width="260"
                             Height="260"
                             CornerRadius="130"
                             Background="#155C8CFF"
                             Canvas.Right="280"
-                            Canvas.Top="72" />
+                            Canvas.Top="72">
+                        <Border.Effect>
+                            <BlurEffect Radius="58" />
+                        </Border.Effect>
+                    </Border>
+                    <Border Width="540"
+                            Height="540"
+                            CornerRadius="270"
+                            Background="#163BB8FF"
+                            Canvas.Left="420"
+                            Canvas.Top="180">
+                        <Border.Effect>
+                            <BlurEffect Radius="140" />
+                        </Border.Effect>
+                    </Border>
+                    <Border Width="380"
+                            Height="380"
+                            CornerRadius="190"
+                            Background="#14FF6EB7"
+                            Canvas.Right="120"
+                            Canvas.Top="250">
+                        <Border.Effect>
+                            <BlurEffect Radius="110" />
+                        </Border.Effect>
+                    </Border>
+                    <Border Width="680"
+                            Height="680"
+                            CornerRadius="340"
+                            Background="#0EFFFFFF"
+                            Canvas.Left="520"
+                            Canvas.Top="40">
+                        <Border.Effect>
+                            <BlurEffect Radius="180" />
+                        </Border.Effect>
+                    </Border>
                 </Canvas>
 
-                <ScrollViewer Padding="108,24,28,24"
+                <ScrollViewer x:Name="StandardSectionScrollViewer"
+                              Padding="108,24,28,88"
                               HorizontalScrollBarVisibility="Disabled"
                               VerticalScrollBarVisibility="Auto">
-                    <ContentControl Content="{Binding CurrentSectionViewModel}" />
+                    <ContentControl x:Name="StandardSectionHost" />
                 </ScrollViewer>
+
+                <Border x:Name="ViewportSectionHostContainer"
+                        Margin="108,24,28,24"
+                        IsVisible="False">
+                    <ContentControl x:Name="ViewportSectionHost"
+                                    HorizontalContentAlignment="Stretch"
+                                    VerticalContentAlignment="Stretch" />
+                </Border>
 
                 <Border HorizontalAlignment="Right"
                         VerticalAlignment="Top"
