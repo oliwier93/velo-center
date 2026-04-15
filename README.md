@@ -37,6 +37,16 @@ dotnet run --project .\src\VeloCenter.App\VeloCenter.App.csproj
 dotnet test .\VeloCenter.sln
 ```
 
+## Windows release packaging
+
+Build the Windows release artifacts with:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\Build-WindowsRelease.ps1
+```
+
+The script creates a self-contained `win-x64` publish, a portable ZIP, and a Windows installer executable in `.artifacts\release`.
+
 ## Next milestones
 
 - Add SQLite and EF Core

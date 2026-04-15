@@ -480,35 +480,6 @@ public sealed class UnitTest1
         Assert.Equal("Brak treningow w wybranym zakresie", workoutsViewModel.EmptyLibraryTitle);
     }
 
-    [Fact]
-    public void HeatmapViewModel_BuildsRoutesAndHighlightsFromActivityRoutes()
-    {
-        VeloCenter.Core.Activities.ActivityRoute[] routes =
-        [
-            new(
-                Guid.NewGuid(),
-                VeloCenter.Core.Activities.ActivitySource.Strava,
-                "Evening Ride",
-                new DateTimeOffset(2026, 4, 10, 18, 0, 0, TimeSpan.Zero),
-                [
-                    new VeloCenter.Core.Activities.ActivityRoutePoint(52.2297, 21.0122),
-                    new VeloCenter.Core.Activities.ActivityRoutePoint(52.2307, 21.0222),
-                    new VeloCenter.Core.Activities.ActivityRoutePoint(52.2317, 21.0322),
-                ]),
-        ];
-
-        var viewModel = new VeloCenter.App.ViewModels.HeatmapViewModel(routes, "Ten rok", totalActivitiesCount: 4);
-
-        Assert.True(viewModel.HasRoutes);
-        Assert.False(viewModel.HasNoRoutes);
-        Assert.Single(viewModel.Routes);
-        Assert.Equal(3, viewModel.Routes[0].Points.Count);
-        Assert.Equal("Trasy na mapie", viewModel.Highlights[0].Label);
-        Assert.Equal("1", viewModel.Highlights[0].Value);
-        Assert.Equal("Punkty tras", viewModel.Highlights[1].Label);
-        Assert.Equal("3", viewModel.Highlights[1].Value);
-    }
-
     private static void ExecuteCommand(object target, string commandPropertyName, object? parameter = null)
     {
         var command = target.GetType().GetProperty(commandPropertyName)!.GetValue(target)!;

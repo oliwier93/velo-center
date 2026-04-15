@@ -18,11 +18,12 @@ public sealed class RouteHeatmapControl : Control
     private static readonly TimeSpan TileCacheFreshness = TimeSpan.FromDays(30);
     private static readonly HttpClient HttpClient = CreateHttpClient();
     private static readonly string StadiaTileCacheDirectory = Path.Combine(Path.GetTempPath(), "velo-center-map-cache", "stadiamaps-alidade-smooth-dark-2x");
-    private static readonly Pen FramePen = new(new SolidColorBrush(Color.Parse("#2A6F7F9A")), 1);
-    private static readonly Pen GlowPen = new(new SolidColorBrush(Color.Parse("#36FF95D9")), 11, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
-    private static readonly Pen SecondaryGlowPen = new(new SolidColorBrush(Color.Parse("#56E877C5")), 6.5, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
-    private static readonly Pen CorePen = new(new SolidColorBrush(Color.Parse("#96C14D97")), 2.6, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
+    private static readonly Color SurfaceColor = Color.Parse("#140B1E");
+    private static readonly Color HeatStartColor = Color.Parse("#FF95D9");
+    private static readonly Color HeatMidColor = Color.Parse("#A669FF");
+    private static readonly Color HeatEndColor = Color.Parse("#311041");
     private readonly Dictionary<string, Bitmap> _tileBitmaps = [];
+    private readonly Dictionary<int, SegmentPenSet> _segmentPenCache = [];
     private TileViewport? _viewport;
     private int _tileRefreshVersion;
     private int _zoomBias;
@@ -144,9 +145,9 @@ public sealed class RouteHeatmapControl : Control
             return;
         }
 
-        context.DrawRectangle(new SolidColorBrush(Color.Parse("#11141A")), null, bounds);
+        context.DrawRectangle(new SolidColorBrush(SurfaceColor), null, bounds);
 
-        var plotArea = bounds.Deflate(new Thickness(24));
+        var plotArea = bounds;
         if (plotArea.Width <= 0 || plotArea.Height <= 0)
         {
             return;
@@ -161,7 +162,6 @@ public sealed class RouteHeatmapControl : Control
         DrawTiles(context);
         DrawRoutes(context);
         DrawTileStatus(context, plotArea);
-        context.DrawRectangle(null, FramePen, plotArea);
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -172,6 +172,7 @@ public sealed class RouteHeatmapControl : Control
         {
             _panLatitudeOffset = 0;
             _panLongitudeOffset = 0;
+            _segmentPenCache.Clear();
             ResetViewport();
             return;
         }
@@ -219,7 +220,7 @@ public sealed class RouteHeatmapControl : Control
             return;
         }
 
-        var viewport = BuildTileViewport(bounds.Deflate(new Thickness(24)), Routes);
+        var viewport = BuildTileViewport(bounds, Routes);
         _viewport = viewport;
         var version = ++_tileRefreshVersion;
         var tileKeys = EnumerateTiles(viewport).ToList();
@@ -293,30 +294,22 @@ public sealed class RouteHeatmapControl : Control
         }
 
         var viewport = _viewport.Value;
-
-        foreach (var route in Routes)
+        var segments = BuildWeightedSegments(Routes);
+        if (segments.Count == 0)
         {
-            if (route.Points.Count < 2)
-            {
-                continue;
-            }
+            return;
+        }
 
-            var geometry = new StreamGeometry();
+        var maxWeight = segments.Max(segment => segment.Weight);
 
-            using (var geometryContext = geometry.Open())
-            {
-                var firstPoint = Project(route.Points[0], viewport);
-                geometryContext.BeginFigure(firstPoint, false);
-
-                for (var index = 1; index < route.Points.Count; index++)
-                {
-                    geometryContext.LineTo(Project(route.Points[index], viewport));
-                }
-            }
-
-            context.DrawGeometry(null, GlowPen, geometry);
-            context.DrawGeometry(null, SecondaryGlowPen, geometry);
-            context.DrawGeometry(null, CorePen, geometry);
+        foreach (var segment in segments.OrderBy(segment => segment.Weight))
+        {
+            var pens = ResolveSegmentPens(segment.Weight, maxWeight);
+            var startPoint = Project(segment.StartLatitude, segment.StartLongitude, viewport);
+            var endPoint = Project(segment.EndLatitude, segment.EndLongitude, viewport);
+            context.DrawLine(pens.Glow, startPoint, endPoint);
+            context.DrawLine(pens.SecondaryGlow, startPoint, endPoint);
+            context.DrawLine(pens.Core, startPoint, endPoint);
         }
     }
 
@@ -346,6 +339,141 @@ public sealed class RouteHeatmapControl : Control
         context.DrawText(titleText, new Point(overlayRect.Left + 22, overlayRect.Top + 20));
         context.DrawText(detailText, new Point(overlayRect.Left + 22, overlayRect.Top + 20 + titleText.Height + 10));
     }
+
+    private SegmentPenSet ResolveSegmentPens(int weight, int maxWeight)
+    {
+        if (_segmentPenCache.TryGetValue(weight, out var cachedPens))
+        {
+            return cachedPens;
+        }
+
+        var intensity = maxWeight <= 1
+            ? 0d
+            : (weight - 1d) / (maxWeight - 1d);
+        var interpolatedColor = intensity < 0.55d
+            ? InterpolateColor(HeatStartColor, HeatMidColor, intensity / 0.55d)
+            : InterpolateColor(HeatMidColor, HeatEndColor, (intensity - 0.55d) / 0.45d);
+
+        var glowColor = WithOpacity(interpolatedColor, 0.18d + (intensity * 0.16d));
+        var secondaryGlowColor = WithOpacity(interpolatedColor, 0.34d + (intensity * 0.18d));
+        var coreColor = WithOpacity(interpolatedColor, 0.58d + (intensity * 0.34d));
+
+        var pens = new SegmentPenSet(
+            new Pen(new SolidColorBrush(glowColor), 10.5d + (intensity * 3.8d), lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round),
+            new Pen(new SolidColorBrush(secondaryGlowColor), 5.8d + (intensity * 2.6d), lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round),
+            new Pen(new SolidColorBrush(coreColor), 2.5d + (intensity * 2.2d), lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round));
+
+        _segmentPenCache[weight] = pens;
+        return pens;
+    }
+
+    private static IReadOnlyList<WeightedRouteSegment> BuildWeightedSegments(IReadOnlyList<HeatmapRouteViewModel> routes)
+    {
+        var segments = new Dictionary<string, WeightedRouteSegment>();
+
+        foreach (var route in routes)
+        {
+            if (route.Points.Count < 2)
+            {
+                continue;
+            }
+
+            var snappedPoints = CollapseConsecutiveDuplicates(route.Points);
+            if (snappedPoints.Count < 2)
+            {
+                continue;
+            }
+
+            for (var index = 1; index < snappedPoints.Count; index++)
+            {
+                var start = snappedPoints[index - 1];
+                var end = snappedPoints[index];
+                if (start == end)
+                {
+                    continue;
+                }
+
+                var normalized = NormalizeSegment(start, end);
+                var key = BuildSegmentKey(normalized.Start, normalized.End);
+
+                if (segments.TryGetValue(key, out var existing))
+                {
+                    segments[key] = existing with { Weight = existing.Weight + 1 };
+                    continue;
+                }
+
+                segments[key] = new WeightedRouteSegment(
+                    normalized.Start.Latitude,
+                    normalized.Start.Longitude,
+                    normalized.End.Latitude,
+                    normalized.End.Longitude,
+                    1);
+            }
+        }
+
+        return
+        [
+            .. segments.Values.OrderBy(segment => segment.Weight),
+        ];
+    }
+
+    private static IReadOnlyList<SnappedPoint> CollapseConsecutiveDuplicates(IReadOnlyList<HeatmapPointViewModel> points)
+    {
+        var snappedPoints = new List<SnappedPoint>(points.Count);
+
+        foreach (var point in points)
+        {
+            var snappedPoint = new SnappedPoint(SnapCoordinate(point.Latitude), SnapCoordinate(point.Longitude));
+            if (snappedPoints.Count > 0 && snappedPoints[^1] == snappedPoint)
+            {
+                continue;
+            }
+
+            snappedPoints.Add(snappedPoint);
+        }
+
+        return snappedPoints;
+    }
+
+    private static (SnappedPoint Start, SnappedPoint End) NormalizeSegment(SnappedPoint first, SnappedPoint second)
+    {
+        if (first.Latitude < second.Latitude)
+        {
+            return (first, second);
+        }
+
+        if (first.Latitude > second.Latitude)
+        {
+            return (second, first);
+        }
+
+        return first.Longitude <= second.Longitude
+            ? (first, second)
+            : (second, first);
+    }
+
+    private static string BuildSegmentKey(SnappedPoint start, SnappedPoint end) =>
+        $"{start.Latitude:F4}:{start.Longitude:F4}:{end.Latitude:F4}:{end.Longitude:F4}";
+
+    private static double SnapCoordinate(double value) =>
+        Math.Round(value, 4, MidpointRounding.AwayFromZero);
+
+    private static Color InterpolateColor(Color from, Color to, double amount)
+    {
+        var clamped = Math.Clamp(amount, 0d, 1d);
+        return Color.FromArgb(
+            (byte)Math.Round(from.A + ((to.A - from.A) * clamped)),
+            (byte)Math.Round(from.R + ((to.R - from.R) * clamped)),
+            (byte)Math.Round(from.G + ((to.G - from.G) * clamped)),
+            (byte)Math.Round(from.B + ((to.B - from.B) * clamped)));
+    }
+
+    private static Color WithOpacity(Color color, double opacity) =>
+        Color.FromArgb(
+            (byte)Math.Round(Math.Clamp(opacity, 0d, 1d) * 255d),
+            color.R,
+            color.G,
+            color.B);
 
     private TileViewport BuildTileViewport(Rect plotArea, IReadOnlyList<HeatmapRouteViewModel> routes)
     {
@@ -573,9 +701,12 @@ public sealed class RouteHeatmapControl : Control
     }
 
     private static Point Project(HeatmapPointViewModel point, TileViewport viewport)
+        => Project(point.Latitude, point.Longitude, viewport);
+
+    private static Point Project(double latitude, double longitude, TileViewport viewport)
     {
-        var worldX = LongitudeToTileX(point.Longitude, viewport.Zoom) * TileSize;
-        var worldY = LatitudeToTileY(point.Latitude, viewport.Zoom) * TileSize;
+        var worldX = LongitudeToTileX(longitude, viewport.Zoom) * TileSize;
+        var worldY = LatitudeToTileY(latitude, viewport.Zoom) * TileSize;
 
         return new Point(
             viewport.OffsetX + ((worldX - viewport.WorldLeft) * viewport.Scale),
@@ -712,6 +843,22 @@ public sealed class RouteHeatmapControl : Control
     private readonly record struct CachedTileBitmap(
         Bitmap Bitmap,
         bool IsFresh);
+
+    private readonly record struct SegmentPenSet(
+        Pen Glow,
+        Pen SecondaryGlow,
+        Pen Core);
+
+    private readonly record struct SnappedPoint(
+        double Latitude,
+        double Longitude);
+
+    private readonly record struct WeightedRouteSegment(
+        double StartLatitude,
+        double StartLongitude,
+        double EndLatitude,
+        double EndLongitude,
+        int Weight);
 
     private readonly record struct TileInfo(
         int Zoom,

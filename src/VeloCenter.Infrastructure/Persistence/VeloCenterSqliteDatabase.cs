@@ -10,21 +10,20 @@ public static class VeloCenterSqliteDatabase
 
     public static string GetApplicationDataDirectory()
     {
-        try
-        {
-            var localApplicationDataRoot = Environment.GetEnvironmentVariable("LOCALAPPDATA");
+        var localApplicationDataRoot = Environment.GetEnvironmentVariable("LOCALAPPDATA");
 
-            if (string.IsNullOrWhiteSpace(localApplicationDataRoot))
-            {
-                localApplicationDataRoot = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            }
-
-            return EnsureDirectoryExists(Path.Combine(localApplicationDataRoot, "VeloCenter"));
-        }
-        catch (UnauthorizedAccessException)
+        if (string.IsNullOrWhiteSpace(localApplicationDataRoot))
         {
-            return EnsureDirectoryExists(Path.Combine(Path.GetTempPath(), "VeloCenter"));
+            localApplicationDataRoot = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         }
+
+        var preferredDirectory = EnsureDirectoryExists(Path.Combine(localApplicationDataRoot, "VeloCenter"));
+        if (CanWriteToDirectory(preferredDirectory))
+        {
+            return preferredDirectory;
+        }
+
+        return EnsureDirectoryExists(Path.Combine(Path.GetTempPath(), "VeloCenter"));
     }
 
     public static string GetDefaultDatabasePath()
@@ -36,7 +35,25 @@ public static class VeloCenterSqliteDatabase
             return EnsureDatabaseDirectory(configuredPath);
         }
 
-        return Path.Combine(GetApplicationDataDirectory(), "velo-center.db");
+        var localApplicationDataRoot = Environment.GetEnvironmentVariable("LOCALAPPDATA");
+
+        if (string.IsNullOrWhiteSpace(localApplicationDataRoot))
+        {
+            localApplicationDataRoot = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        }
+
+        var preferredDirectory = EnsureDirectoryExists(Path.Combine(localApplicationDataRoot, "VeloCenter"));
+        var preferredDatabasePath = Path.Combine(preferredDirectory, "velo-center.db");
+
+        if (CanWriteToDirectory(preferredDirectory))
+        {
+            return preferredDatabasePath;
+        }
+
+        var fallbackDirectory = EnsureDirectoryExists(Path.Combine(Path.GetTempPath(), "VeloCenter"));
+        var fallbackDatabasePath = Path.Combine(fallbackDirectory, "velo-center.db");
+        TryCopyExistingDatabase(preferredDatabasePath, fallbackDatabasePath);
+        return fallbackDatabasePath;
     }
 
     public static void Initialize(string databasePath, bool seedDemoData = false)
@@ -148,6 +165,56 @@ public static class VeloCenterSqliteDatabase
         ArgumentException.ThrowIfNullOrWhiteSpace(directoryPath);
         Directory.CreateDirectory(directoryPath);
         return directoryPath;
+    }
+
+    private static bool CanWriteToDirectory(string directoryPath)
+    {
+        try
+        {
+            var probePath = Path.Combine(directoryPath, $".write-probe-{Guid.NewGuid():N}.tmp");
+            File.WriteAllText(probePath, "ok");
+            File.Delete(probePath);
+            return true;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return false;
+        }
+        catch (IOException)
+        {
+            return false;
+        }
+    }
+
+    private static void TryCopyExistingDatabase(string sourceDatabasePath, string destinationDatabasePath)
+    {
+        if (File.Exists(destinationDatabasePath) || !File.Exists(sourceDatabasePath))
+        {
+            return;
+        }
+
+        TryCopyFile(sourceDatabasePath, destinationDatabasePath);
+        TryCopyFile($"{sourceDatabasePath}-wal", $"{destinationDatabasePath}-wal");
+        TryCopyFile($"{sourceDatabasePath}-shm", $"{destinationDatabasePath}-shm");
+    }
+
+    private static void TryCopyFile(string sourcePath, string destinationPath)
+    {
+        try
+        {
+            if (!File.Exists(sourcePath))
+            {
+                return;
+            }
+
+            File.Copy(sourcePath, destinationPath, overwrite: false);
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
+        catch (IOException)
+        {
+        }
     }
 
     private static IEnumerable<ActivityRecord> CreateSeedActivities()

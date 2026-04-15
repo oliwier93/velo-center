@@ -1,0 +1,4 @@
+<Project>
+  <!-- Avalonia 12 usage stats can fail CLI builds here, so keep the target as a no-op for reproducible releases. -->
+  <Target Name="AvaloniaStats" />
+</Project>

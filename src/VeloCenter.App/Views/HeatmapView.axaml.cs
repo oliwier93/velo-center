@@ -12,8 +12,7 @@ public partial class HeatmapView : UserControl
     {
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
-    private static readonly string WebViewDocumentDirectory = Path.Combine(Path.GetTempPath(), "velo-center", "webview");
-    private static readonly string WebViewDocumentPath = Path.Combine(WebViewDocumentDirectory, "heatmap-vector.html");
+    private static readonly Uri WebViewBaseUri = new("https://velo-center.local/");
 
     public HeatmapView()
     {
@@ -60,9 +59,7 @@ public partial class HeatmapView : UserControl
 
         try
         {
-            Directory.CreateDirectory(WebViewDocumentDirectory);
-            File.WriteAllText(WebViewDocumentPath, BuildMapDocument(viewModel, stadiaApiKey));
-            VectorMapView.Source = new Uri(WebViewDocumentPath);
+            VectorMapView.NavigateToString(BuildMapDocument(viewModel, stadiaApiKey), WebViewBaseUri);
         }
         catch (Exception exception)
         {
@@ -121,10 +118,13 @@ public partial class HeatmapView : UserControl
 
     private static string BuildMapDocument(HeatmapViewModel viewModel, string stadiaApiKey)
     {
-        var featureCollection = new
+        const string HostSurfaceColor = "#211234";
+        var vectorRoutes = BuildVectorRoutes(viewModel.Routes);
+        var weightedSegments = BuildWeightedSegments(viewModel.Routes);
+        var routeFeatureCollection = new
         {
             type = "FeatureCollection",
-            features = viewModel.Routes.Select(route => new
+            features = vectorRoutes.Select(route => new
             {
                 type = "Feature",
                 properties = new
@@ -132,17 +132,43 @@ public partial class HeatmapView : UserControl
                     id = route.ActivityId,
                     title = route.Title,
                     source = route.SourceLabel,
+                    pointCount = route.Coordinates.Count,
                 },
                 geometry = new
                 {
                     type = "LineString",
-                    coordinates = route.Points.Select(point => new[] { point.Longitude, point.Latitude }).ToArray(),
+                    coordinates = route.Coordinates
+                        .Select(coordinate => new[] { coordinate.Longitude, coordinate.Latitude })
+                        .ToArray(),
+                },
+            }).ToArray(),
+        };
+        var heatFeatureCollection = new
+        {
+            type = "FeatureCollection",
+            features = weightedSegments.Select(segment => new
+            {
+                type = "Feature",
+                properties = new
+                {
+                    weight = segment.Weight,
+                },
+                geometry = new
+                {
+                    type = "Point",
+                    coordinates = new[]
+                    {
+                        (segment.StartLongitude + segment.EndLongitude) / 2d,
+                        (segment.StartLatitude + segment.EndLatitude) / 2d,
+                    },
                 },
             }).ToArray(),
         };
 
         var bounds = GetBounds(viewModel.Routes);
-        var featureCollectionJson = JsonSerializer.Serialize(featureCollection, JsonOptions);
+        var routeFeatureCollectionJson = JsonSerializer.Serialize(routeFeatureCollection, JsonOptions);
+        var heatFeatureCollectionJson = JsonSerializer.Serialize(heatFeatureCollection, JsonOptions);
+        var maxWeight = Math.Max(1, weightedSegments.Count == 0 ? 1 : weightedSegments.Max(segment => segment.Weight));
         var boundsJson = JsonSerializer.Serialize(new[]
         {
             new[] { bounds.MinLongitude, bounds.MinLatitude },
@@ -162,14 +188,35 @@ public partial class HeatmapView : UserControl
       margin: 0;
       width: 100%;
       height: 100%;
-      background: #0f1218;
+      background: {{HostSurfaceColor}};
       overflow: hidden;
     }
 
+    #shell {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      border-radius: 28px;
+      background: {{HostSurfaceColor}};
+      clip-path: inset(0 round 28px);
+    }
+
     #map {
+      position: absolute;
+      inset: 0;
       width: 100%;
       height: 100%;
-      background: #0f1218;
+      background: {{HostSurfaceColor}};
+      border-radius: 28px;
+      clip-path: inset(0 round 28px);
+    }
+
+    .maplibregl-map,
+    .maplibregl-canvas-container,
+    .maplibregl-canvas {
+      border-radius: 28px;
+      background: {{HostSurfaceColor}} !important;
+      clip-path: inset(0 round 28px);
     }
 
     .maplibregl-ctrl-bottom-left,
@@ -181,18 +228,70 @@ public partial class HeatmapView : UserControl
   </style>
 </head>
 <body>
-  <div id="map"></div>
+  <div id="shell">
+    <div id="map"></div>
+  </div>
   <script src="https://unpkg.com/maplibre-gl@5.12.0/dist/maplibre-gl.js"></script>
   <script>
-    const routeGeoJson = {{featureCollectionJson}};
+    const routeGeoJson = {{routeFeatureCollectionJson}};
+    const routeHeatGeoJson = {{heatFeatureCollectionJson}};
     const bounds = {{boundsJson}};
     const styleUrl = "{{styleUrl}}";
+    const maxWeight = {{maxWeight}};
+    const routeLineWidthExpression = ['interpolate', ['linear'], ['zoom'],
+      6, 1.8,
+      9, 2.6,
+      12, 4.2,
+      15, 6.2];
+    const routeGlowWidthExpression = ['+', routeLineWidthExpression, 5.4];
+    const heatWeightExpression = maxWeight <= 1
+      ? 0.45
+      : ['interpolate', ['linear'], ['coalesce', ['get', 'weight'], 1],
+          1, 0.24,
+          Math.max(2, Math.ceil(maxWeight * 0.45)), 0.62,
+          maxWeight, 1];
+    const firstSymbolLayerId = (style) => style?.layers?.find(layer => layer.type === 'symbol')?.id;
 
     const sendMessage = (payload) => {
-      if (typeof invokeCSharpAction === 'function') {
-        invokeCSharpAction(JSON.stringify(payload));
-      }
+      const serializedPayload = typeof payload === 'string' ? payload : JSON.stringify(payload);
+
+      try {
+        if (window.chrome?.webview?.postMessage) {
+          window.chrome.webview.postMessage(serializedPayload);
+          return true;
+        }
+      } catch { }
+
+      try {
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage(serializedPayload, '*');
+          return true;
+        }
+      } catch { }
+
+      try {
+        if (typeof invokeCSharpAction === 'function') {
+          invokeCSharpAction(serializedPayload);
+          return true;
+        }
+      } catch { }
+
+      return false;
     };
+
+    window.addEventListener('error', (event) => {
+      sendMessage({
+        type: 'error',
+        message: event?.error?.message ?? event?.message ?? 'Nieznany blad JavaScript.'
+      });
+    });
+
+    window.addEventListener('unhandledrejection', (event) => {
+      sendMessage({
+        type: 'error',
+        message: event?.reason?.message ?? String(event?.reason ?? 'Nieznana obietnica zakonczona bledem.')
+      });
+    });
 
     try {
       const map = new maplibregl.Map({
@@ -205,16 +304,56 @@ public partial class HeatmapView : UserControl
         pitchWithRotate: false
       });
 
+      const resizeMap = () => window.requestAnimationFrame(() => map.resize());
+
       window.veloHeatmap = {
         zoomIn: () => map.zoomIn({ duration: 180 }),
         zoomOut: () => map.zoomOut({ duration: 180 })
       };
 
+      window.addEventListener('resize', resizeMap);
+
       map.on('load', () => {
+        const labelLayerId = firstSymbolLayerId(map.getStyle());
+
+        map.addSource('route-heat-points', {
+          type: 'geojson',
+          data: routeHeatGeoJson
+        });
+
         map.addSource('routes', {
           type: 'geojson',
           data: routeGeoJson
         });
+
+        map.addLayer({
+          id: 'route-heat',
+          type: 'heatmap',
+          source: 'route-heat-points',
+          paint: {
+            'heatmap-weight': heatWeightExpression,
+            'heatmap-intensity': ['interpolate', ['linear'], ['zoom'],
+              6, 0.85,
+              10, 1.1,
+              14, 1.35],
+            'heatmap-radius': ['interpolate', ['linear'], ['zoom'],
+              6, 10,
+              10, 18,
+              14, 30,
+              16, 42],
+            'heatmap-color': ['interpolate', ['linear'], ['heatmap-density'],
+              0, 'rgba(0, 0, 0, 0)',
+              0.12, 'rgba(255, 120, 182, 0.18)',
+              0.35, 'rgba(255, 120, 182, 0.42)',
+              0.62, 'rgba(156, 78, 208, 0.68)',
+              0.82, 'rgba(92, 30, 133, 0.86)',
+              1, 'rgba(49, 16, 65, 0.98)'],
+            'heatmap-opacity': ['interpolate', ['linear'], ['zoom'],
+              6, 0.96,
+              12, 0.82,
+              16, 0.62]
+          }
+        }, labelLayerId);
 
         map.addLayer({
           id: 'route-glow',
@@ -225,12 +364,15 @@ public partial class HeatmapView : UserControl
             'line-join': 'round'
           },
           paint: {
-            'line-color': '#ff6fae',
-            'line-width': 8,
-            'line-opacity': 0.09,
-            'line-blur': 0.9
+            'line-color': '#ff8ec2',
+            'line-width': routeGlowWidthExpression,
+            'line-opacity': ['interpolate', ['linear'], ['zoom'],
+              6, 0.10,
+              12, 0.16,
+              16, 0.24],
+            'line-blur': 1.25
           }
-        });
+        }, labelLayerId);
 
         map.addLayer({
           id: 'route-core',
@@ -241,11 +383,14 @@ public partial class HeatmapView : UserControl
             'line-join': 'round'
           },
           paint: {
-            'line-color': '#ff6fae',
-            'line-width': 3.5,
-            'line-opacity': 0.24
+            'line-color': '#ffd6ea',
+            'line-width': routeLineWidthExpression,
+            'line-opacity': ['interpolate', ['linear'], ['zoom'],
+              6, 0.18,
+              12, 0.28,
+              16, 0.42]
           }
-        });
+        }, labelLayerId);
 
         if (bounds?.length === 2) {
           map.fitBounds(bounds, {
@@ -255,6 +400,7 @@ public partial class HeatmapView : UserControl
           });
         }
 
+        resizeMap();
         map.once('idle', () => sendMessage({ type: 'ready' }));
       });
 
@@ -299,4 +445,159 @@ public partial class HeatmapView : UserControl
             minLongitude - longitudePadding,
             maxLongitude + longitudePadding);
     }
+
+    private static IReadOnlyList<VectorRoute> BuildVectorRoutes(IReadOnlyList<HeatmapRouteViewModel> routes)
+    {
+        var vectorRoutes = new List<VectorRoute>(routes.Count);
+
+        foreach (var route in routes)
+        {
+            var coordinates = CollapseConsecutiveRoutePoints(route.Points);
+            if (coordinates.Count < 2)
+            {
+                continue;
+            }
+
+            vectorRoutes.Add(new VectorRoute(route.ActivityId, route.Title, route.SourceLabel, coordinates));
+        }
+
+        return vectorRoutes;
+    }
+
+    private static IReadOnlyList<WeightedRouteSegment> BuildWeightedSegments(IReadOnlyList<HeatmapRouteViewModel> routes)
+    {
+        var segments = new Dictionary<string, WeightedRouteSegment>();
+
+        foreach (var route in routes)
+        {
+            if (route.Points.Count < 2)
+            {
+                continue;
+            }
+
+            var snappedPoints = CollapseConsecutiveDuplicates(route.Points);
+
+            if (snappedPoints.Count < 2)
+            {
+                continue;
+            }
+
+            for (var index = 1; index < snappedPoints.Count; index++)
+            {
+                var start = snappedPoints[index - 1];
+                var end = snappedPoints[index];
+
+                if (start == end)
+                {
+                    continue;
+                }
+
+                var normalized = NormalizeSegment(start, end);
+                var key = BuildSegmentKey(normalized.Start, normalized.End);
+
+                if (segments.TryGetValue(key, out var existing))
+                {
+                    segments[key] = existing with { Weight = existing.Weight + 1 };
+                    continue;
+                }
+
+                segments[key] = new WeightedRouteSegment(
+                    normalized.Start.Latitude,
+                    normalized.Start.Longitude,
+                    normalized.End.Latitude,
+                    normalized.End.Longitude,
+                    1);
+            }
+        }
+
+        return
+        [
+            .. segments.Values.OrderByDescending(segment => segment.Weight),
+        ];
+    }
+
+    private static (SnappedPoint Start, SnappedPoint End) NormalizeSegment(SnappedPoint first, SnappedPoint second)
+    {
+        if (first.Latitude < second.Latitude)
+        {
+            return (first, second);
+        }
+
+        if (first.Latitude > second.Latitude)
+        {
+            return (second, first);
+        }
+
+        return first.Longitude <= second.Longitude
+            ? (first, second)
+            : (second, first);
+    }
+
+    private static string BuildSegmentKey(SnappedPoint start, SnappedPoint end) =>
+        $"{start.Latitude:F4}:{start.Longitude:F4}:{end.Latitude:F4}:{end.Longitude:F4}";
+
+    private static IReadOnlyList<RouteCoordinate> CollapseConsecutiveRoutePoints(IReadOnlyList<HeatmapPointViewModel> points)
+    {
+        var coordinates = new List<RouteCoordinate>(points.Count);
+
+        foreach (var point in points)
+        {
+            var coordinate = new RouteCoordinate(point.Latitude, point.Longitude);
+            if (coordinates.Count > 0 && AreSameCoordinate(coordinates[^1], coordinate))
+            {
+                continue;
+            }
+
+            coordinates.Add(coordinate);
+        }
+
+        return coordinates;
+    }
+
+    private static IReadOnlyList<SnappedPoint> CollapseConsecutiveDuplicates(IReadOnlyList<HeatmapPointViewModel> points)
+    {
+        var snappedPoints = new List<SnappedPoint>(points.Count);
+
+        foreach (var point in points)
+        {
+            var snappedPoint = new SnappedPoint(SnapCoordinate(point.Latitude), SnapCoordinate(point.Longitude));
+
+            if (snappedPoints.Count > 0 && snappedPoints[^1] == snappedPoint)
+            {
+                continue;
+            }
+
+            snappedPoints.Add(snappedPoint);
+        }
+
+        return snappedPoints;
+    }
+
+    private static double SnapCoordinate(double value) =>
+        Math.Round(value, 4, MidpointRounding.AwayFromZero);
+
+    private static bool AreSameCoordinate(RouteCoordinate left, RouteCoordinate right) =>
+        Math.Abs(left.Latitude - right.Latitude) < 0.0000005d &&
+        Math.Abs(left.Longitude - right.Longitude) < 0.0000005d;
+
+    private readonly record struct RouteCoordinate(
+        double Latitude,
+        double Longitude);
+
+    private readonly record struct SnappedPoint(
+        double Latitude,
+        double Longitude);
+
+    private readonly record struct VectorRoute(
+        Guid ActivityId,
+        string Title,
+        string SourceLabel,
+        IReadOnlyList<RouteCoordinate> Coordinates);
+
+    private readonly record struct WeightedRouteSegment(
+        double StartLatitude,
+        double StartLongitude,
+        double EndLatitude,
+        double EndLongitude,
+        int Weight);
 }

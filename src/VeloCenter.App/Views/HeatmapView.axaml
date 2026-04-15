@@ -8,11 +8,14 @@
           VerticalAlignment="Stretch">
         <Border CornerRadius="28"
                 ClipToBounds="True"
-                Background="#F4F4F2"
+                Background="{DynamicResource PanelStrongBackgroundBrush}"
                 BorderBrush="{DynamicResource PanelStrokeBrush}"
                 BorderThickness="1">
-            <Grid VerticalAlignment="Stretch">
+            <Grid VerticalAlignment="Stretch"
+                  Background="{DynamicResource PanelStrongBackgroundBrush}">
                 <NativeWebView x:Name="VectorMapView"
+                               HorizontalAlignment="Stretch"
+                               VerticalAlignment="Stretch"
                                IsVisible="{Binding HasRoutes}" />
 
                 <StackPanel HorizontalAlignment="Right"
@@ -113,7 +116,7 @@
             <TextBlock HorizontalAlignment="Right"
                        FontSize="11"
                        Foreground="{DynamicResource TextSubtleBrush}"
-                       Text="Stadia Maps • OpenMapTiles • OpenStreetMap contributors" />
+                       Text="Stadia Maps | OpenMapTiles | OpenStreetMap contributors" />
             <ItemsControl HorizontalAlignment="Center"
                           ItemsSource="{Binding Highlights}">
                 <ItemsControl.ItemsPanel>

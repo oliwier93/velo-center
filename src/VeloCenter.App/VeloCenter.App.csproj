@@ -4,19 +4,24 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>0.1.0</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
   </PropertyGroup>
 
   <ItemGroup>
     <Folder Include="Models\" />
     <AvaloniaResource Include="Assets\**" />
+    <Compile Remove="Controls\RouteHeatmapControl.cs" />
+    <Compile Remove="ViewModels\HeatmapPointViewModel.cs" />
+    <Compile Remove="ViewModels\HeatmapRouteViewModel.cs" />
+    <Compile Remove="ViewModels\HeatmapViewModel.cs" />
+    <Compile Remove="Views\HeatmapView.axaml.cs" />
+    <AvaloniaXaml Remove="Views\HeatmapView.axaml" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="12.0.0" />
-    <PackageReference Include="Avalonia.Controls.WebView" Version="12.0.0" />
     <PackageReference Include="Avalonia.Desktop" Version="12.0.0" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="12.0.0" />
     <PackageReference Include="Avalonia.Fonts.Inter" Version="12.0.0" />

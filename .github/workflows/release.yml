@@ -1,0 +1,51 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore .\VeloCenter.sln
+
+      - name: Test
+        run: dotnet test .\tests\VeloCenter.Tests\VeloCenter.Tests.csproj --no-restore --verbosity minimal
+
+      - name: Build Windows release artifacts
+        run: powershell -ExecutionPolicy Bypass -File .\scripts\Build-WindowsRelease.ps1
+
+      - name: Resolve release notes path
+        id: notes
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart("v")
+          $notesPath = "docs/release-notes/$version.md"
+          if (-not (Test-Path -LiteralPath $notesPath)) {
+            throw "Missing release notes file: $notesPath"
+          }
+          "body_path=$notesPath" >> $env:GITHUB_OUTPUT
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          prerelease: true
+          body_path: ${{ steps.notes.outputs.body_path }}
+          files: |
+            .artifacts/release/VeloCenter-*.zip
+            .artifacts/release/VeloCenter-*-setup.exe
