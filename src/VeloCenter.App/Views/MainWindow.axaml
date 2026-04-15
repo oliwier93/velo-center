@@ -6,12 +6,12 @@
         mc:Ignorable="d"
         x:Class="VeloCenter.App.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        d:DesignWidth="1380"
-        d:DesignHeight="860"
-        Width="1380"
-        Height="860"
-        MinWidth="1040"
-        MinHeight="680"
+        d:DesignWidth="1680"
+        d:DesignHeight="1080"
+        Width="1680"
+        Height="1080"
+        MinWidth="1280"
+        MinHeight="1080"
         Background="{DynamicResource AppBackgroundBrush}"
         Icon="/Assets/avalonia-logo.ico"
         Title="Velo Center">
@@ -50,6 +50,16 @@
         <Style Selector="Button.toolbar-button:pointerover">
             <Setter Property="Background" Value="#121A2036" />
             <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+        </Style>
+
+        <Style Selector="ComboBox.range-selector">
+            <Setter Property="MinWidth" Value="220" />
+            <Setter Property="Height" Value="44" />
+            <Setter Property="Padding" Value="8,0" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}" />
         </Style>
     </Window.Styles>
 
@@ -205,55 +215,22 @@
                                 Orientation="Horizontal"
                                 Spacing="10"
                                 VerticalAlignment="Center">
-                        <Border Height="44"
-                                Padding="14,0"
-                                CornerRadius="16"
-                                Background="{DynamicResource PanelBackgroundBrush}"
-                                BorderBrush="{DynamicResource PanelStrokeBrush}"
-                                BorderThickness="1">
-                            <Grid ColumnDefinitions="Auto,Auto,Auto"
-                                  ColumnSpacing="10"
-                                  VerticalAlignment="Center">
-                                <Border Width="26"
-                                        Height="26"
-                                        CornerRadius="10"
-                                        Background="#22F7E9FF">
-                                    <Path Width="14"
-                                          Height="14"
-                                          HorizontalAlignment="Center"
-                                          VerticalAlignment="Center"
-                                          Data="M7,5 H17 A2,2 0 0 1 19,7 V17 A2,2 0 0 1 17,19 H7 A2,2 0 0 1 5,17 V7 A2,2 0 0 1 7,5 M8,3 V7 M16,3 V7 M5,10 H19"
-                                          Stretch="Uniform"
-                                          Stroke="{DynamicResource TextMutedBrush}"
-                                          StrokeLineCap="Round"
-                                          StrokeThickness="1.7" />
-                                </Border>
-
-                                <TextBlock Grid.Column="1"
-                                           VerticalAlignment="Center"
-                                           FontSize="12"
-                                           FontWeight="SemiBold"
-                                           Foreground="{DynamicResource TextMutedBrush}"
-                                           Text="{Binding CurrentRangeLabel}" />
-
-                                <Grid Grid.Column="2"
-                                      Width="12"
-                                      Height="16"
-                                      VerticalAlignment="Center">
-                                    <Viewbox Width="10"
-                                             Height="10"
-                                             HorizontalAlignment="Center"
-                                             VerticalAlignment="Center"
-                                             Margin="0,2,0,0">
-                                        <Path Data="M2,3.5 L6,7.5 L10,3.5"
-                                              Stretch="Uniform"
-                                              Stroke="{DynamicResource TextSubtleBrush}"
-                                              StrokeLineCap="Round"
-                                              StrokeThickness="1.6" />
-                                    </Viewbox>
-                                </Grid>
-                            </Grid>
-                        </Border>
+                        <ComboBox x:Name="RangeSelectorComboBox"
+                                  Classes="range-selector"
+                                  ItemsSource="{Binding RangeOptions}"
+                                  SelectedItem="{Binding SelectedRangeOption}"
+                                  SelectionChanged="RangeSelectorSelectionChanged"
+                                  IsVisible="{Binding ShowTopBarRangeSelector}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ActivityRangeOptionViewModel">
+                                    <TextBlock VerticalAlignment="Center"
+                                               FontSize="13"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextPrimaryBrush}"
+                                               Text="{Binding Label}" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
 
                         <Button Classes="toolbar-button"
                                 Command="{Binding SyncCommand}"
@@ -303,7 +280,8 @@
                 </Canvas>
 
                 <ScrollViewer Padding="108,24,28,24"
-                              HorizontalScrollBarVisibility="Disabled">
+                              HorizontalScrollBarVisibility="Disabled"
+                              VerticalScrollBarVisibility="Auto">
                     <ContentControl Content="{Binding CurrentSectionViewModel}" />
                 </ScrollViewer>
 

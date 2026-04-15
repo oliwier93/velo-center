@@ -3,6 +3,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
+using VeloCenter.App.Services;
 using VeloCenter.App.ViewModels;
 using VeloCenter.App.Views;
 using VeloCenter.Infrastructure.Activities;
@@ -29,10 +30,11 @@ public partial class App : Application
             var activityImportService = new LocalFileActivityImportService(databasePath);
             var stravaIntegrationService = new StravaIntegrationService(databasePath);
             var applicationResetService = new LocalApplicationResetService(databasePath);
+            var activityRangePreferencesStore = new LocalActivityRangePreferencesStore();
 
             desktop.MainWindow = new MainWindow
             {
-                DataContext = new MainWindowViewModel(activityRepository, activityImportService, stravaIntegrationService, applicationResetService),
+                DataContext = new MainWindowViewModel(activityRepository, activityImportService, stravaIntegrationService, applicationResetService, activityRangePreferencesStore),
             };
         }
 

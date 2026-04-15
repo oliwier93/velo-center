@@ -1,0 +1,121 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="VeloCenter.App.Views.CustomDateRangeWindow"
+        Width="520"
+        SizeToContent="Height"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowDecorations="None"
+        Background="Transparent"
+        TransparencyLevelHint="AcrylicBlur"
+        WindowStartupLocation="CenterOwner">
+    <Window.Styles>
+        <Style Selector="Button.dialog-action">
+            <Setter Property="Padding" Value="18,14" />
+            <Setter Property="CornerRadius" Value="20" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+        <Style Selector="Button.dialog-secondary">
+            <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PanelStrokeBrush}" />
+        </Style>
+
+        <Style Selector="Button.dialog-secondary:pointerover">
+            <Setter Property="Background" Value="{DynamicResource PanelHighlightBrush}" />
+        </Style>
+
+        <Style Selector="Button.dialog-secondary:focus-visible">
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentRoseBrush}" />
+        </Style>
+
+        <Style Selector="Button.dialog-primary">
+            <Setter Property="Background" Value="{DynamicResource AccentStrongBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentRoseBrush}" />
+        </Style>
+
+        <Style Selector="Button.dialog-primary:pointerover">
+            <Setter Property="Background" Value="{DynamicResource AccentRoseBrush}" />
+        </Style>
+
+        <Style Selector="Button.dialog-primary:focus-visible">
+            <Setter Property="BorderBrush" Value="#F5D7FF" />
+        </Style>
+    </Window.Styles>
+
+    <Border Margin="14"
+            Padding="24"
+            CornerRadius="28"
+            Background="{DynamicResource AppBackgroundBrush}"
+            BorderBrush="{DynamicResource ChromeBorderBrush}"
+            BorderThickness="1"
+            BoxShadow="0 18 48 0 #66000000">
+        <Border Padding="22"
+                CornerRadius="22"
+                Background="{DynamicResource PanelStrongBackgroundBrush}"
+                BorderBrush="{DynamicResource PanelStrokeBrush}"
+                BorderThickness="1">
+            <StackPanel Spacing="18">
+                <StackPanel Spacing="8">
+                    <TextBlock FontSize="24"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               Text="Wybierz zakres dat" />
+                    <TextBlock FontSize="14"
+                               Foreground="{DynamicResource TextMutedBrush}"
+                               Text="Ustaw poczatek i koniec zakresu, ktory ma filtrowac biblioteke treningow."
+                               TextWrapping="Wrap" />
+                </StackPanel>
+
+                <Grid ColumnDefinitions="*,*"
+                      ColumnSpacing="14">
+                    <StackPanel Spacing="8">
+                        <TextBlock FontSize="13"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextSubtleBrush}"
+                                   Text="Od" />
+                        <CalendarDatePicker x:Name="StartDatePicker"
+                                            HorizontalAlignment="Stretch" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1"
+                                Spacing="8">
+                        <TextBlock FontSize="13"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextSubtleBrush}"
+                                   Text="Do" />
+                        <CalendarDatePicker x:Name="EndDatePicker"
+                                            HorizontalAlignment="Stretch" />
+                    </StackPanel>
+                </Grid>
+
+                <Border x:Name="ValidationBorder"
+                        Padding="14"
+                        CornerRadius="18"
+                        Background="#3A1D26"
+                        BorderBrush="#7A3E4D"
+                        BorderThickness="1"
+                        IsVisible="False">
+                    <TextBlock x:Name="ValidationText"
+                               FontSize="13"
+                               Foreground="#FFD9E1"
+                               TextWrapping="Wrap" />
+                </Border>
+
+                <StackPanel Orientation="Horizontal"
+                            HorizontalAlignment="Right"
+                            Spacing="10">
+                    <Button Classes="dialog-action dialog-secondary"
+                            Click="CancelClick"
+                            Content="Anuluj" />
+                    <Button Classes="dialog-action dialog-primary"
+                            Click="ApplyClick"
+                            Content="Zastosuj" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </Border>
+</Window>

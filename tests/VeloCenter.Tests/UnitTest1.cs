@@ -238,4 +238,269 @@ public sealed class UnitTest1
             }
         }
     }
+
+    [Fact]
+    public void ProgressViewModel_BuildsYearlyCumulativeDistanceSeries()
+    {
+        var localOffset2026 = TimeZoneInfo.Local.GetUtcOffset(new DateTime(2026, 3, 1, 12, 0, 0));
+        var localOffset2025 = TimeZoneInfo.Local.GetUtcOffset(new DateTime(2025, 3, 1, 12, 0, 0));
+
+        VeloCenter.Core.Activities.ActivitySummary[] activities =
+        [
+            new(
+                Guid.NewGuid(),
+                VeloCenter.Core.Activities.ActivitySource.GpxFile,
+                "Ride 2026-03-01",
+                new DateTimeOffset(2026, 3, 1, 12, 0, 0, localOffset2026),
+                50,
+                TimeSpan.FromMinutes(100)),
+            new(
+                Guid.NewGuid(),
+                VeloCenter.Core.Activities.ActivitySource.Strava,
+                "Ride 2026-03-02",
+                new DateTimeOffset(2026, 3, 2, 12, 0, 0, localOffset2026),
+                100,
+                TimeSpan.FromMinutes(180)),
+            new(
+                Guid.NewGuid(),
+                VeloCenter.Core.Activities.ActivitySource.FitFile,
+                "Ride 2025-03-01",
+                new DateTimeOffset(2025, 3, 1, 12, 0, 0, localOffset2025),
+                20,
+                TimeSpan.FromMinutes(60)),
+        ];
+
+        var viewModel = new VeloCenter.App.ViewModels.ProgressViewModel(activities);
+        var series2026 = Assert.Single(viewModel.AnnualSeries, series => series.Year == 2026);
+        var marchFirstPoint = Assert.Single(series2026.Points, point => point.DayOfYear == 60);
+        var marchSecondPoint = Assert.Single(series2026.Points, point => point.DayOfYear == 61);
+
+        Assert.Equal(2, viewModel.AnnualSeries.Count);
+        Assert.Equal(150, series2026.TotalDistanceKm, 3);
+        Assert.Equal(50, marchFirstPoint.CumulativeDistanceKm, 3);
+        Assert.Equal(150, marchSecondPoint.CumulativeDistanceKm, 3);
+    }
+
+    [Fact]
+    public void ProgressViewModel_BuildsAtLeastSixDistanceTicksWithNiceRoundedScale()
+    {
+        var localOffset2026 = TimeZoneInfo.Local.GetUtcOffset(new DateTime(2026, 7, 15, 12, 0, 0));
+        VeloCenter.Core.Activities.ActivitySummary[] activities =
+        [
+            new(
+                Guid.NewGuid(),
+                VeloCenter.Core.Activities.ActivitySource.Strava,
+                "Season total",
+                new DateTimeOffset(2026, 7, 15, 12, 0, 0, localOffset2026),
+                1750,
+                TimeSpan.FromHours(50)),
+        ];
+
+        var viewModel = new VeloCenter.App.ViewModels.ProgressViewModel(activities);
+
+        Assert.Equal(
+            ["2000 km", "1600 km", "1200 km", "800 km", "400 km", "0 km"],
+            viewModel.DistanceTicks.Select(tick => tick.Label).ToArray());
+    }
+
+    [Fact]
+    public void ProgressViewModel_FiltersVisibleSeriesAndKeepsNewestOnTop()
+    {
+        var localOffset2026 = TimeZoneInfo.Local.GetUtcOffset(new DateTime(2026, 3, 1, 12, 0, 0));
+        var localOffset2025 = TimeZoneInfo.Local.GetUtcOffset(new DateTime(2025, 3, 1, 12, 0, 0));
+
+        VeloCenter.Core.Activities.ActivitySummary[] activities =
+        [
+            new(
+                Guid.NewGuid(),
+                VeloCenter.Core.Activities.ActivitySource.GpxFile,
+                "Ride 2026-03-01",
+                new DateTimeOffset(2026, 3, 1, 12, 0, 0, localOffset2026),
+                50,
+                TimeSpan.FromMinutes(100)),
+            new(
+                Guid.NewGuid(),
+                VeloCenter.Core.Activities.ActivitySource.FitFile,
+                "Ride 2025-03-01",
+                new DateTimeOffset(2025, 3, 1, 12, 0, 0, localOffset2025),
+                20,
+                TimeSpan.FromMinutes(60)),
+        ];
+
+        var viewModel = new VeloCenter.App.ViewModels.ProgressViewModel(activities);
+        var year2025 = Assert.Single(viewModel.AnnualSeries, series => series.Year == 2025);
+
+        Assert.Equal([2025, 2026], viewModel.VisibleAnnualSeries.Select(series => series.Year).ToArray());
+
+        year2025.IsVisible = false;
+
+        Assert.Single(viewModel.VisibleAnnualSeries);
+        Assert.Equal(2026, viewModel.VisibleAnnualSeries[0].Year);
+    }
+
+    [Fact]
+    public void ProgressViewModel_CurrentYearSeriesEndsAtTodayInsteadOfYearEnd()
+    {
+        var today = DateTime.Today;
+        var localOffset = TimeZoneInfo.Local.GetUtcOffset(today.AddHours(12));
+        VeloCenter.Core.Activities.ActivitySummary[] activities =
+        [
+            new(
+                Guid.NewGuid(),
+                VeloCenter.Core.Activities.ActivitySource.Strava,
+                "Current year ride",
+                new DateTimeOffset(today.Year, 1, 1, 12, 0, 0, localOffset),
+                30,
+                TimeSpan.FromMinutes(60)),
+        ];
+
+        var viewModel = new VeloCenter.App.ViewModels.ProgressViewModel(activities);
+        var currentYearSeries = Assert.Single(viewModel.AnnualSeries, series => series.Year == today.Year);
+
+        Assert.Equal(today.DayOfYear, currentYearSeries.Points[^1].DayOfYear);
+        Assert.Equal(today.DayOfYear < (DateTime.IsLeapYear(today.Year) ? 366 : 365), currentYearSeries.ShowEndMarker);
+    }
+
+    [Fact]
+    public void ProgressViewModel_DoesNotShowEndMarkerForCompletedYear()
+    {
+        var pastYear = DateTime.Today.Year - 1;
+        var localOffset = TimeZoneInfo.Local.GetUtcOffset(new DateTime(pastYear, 6, 1, 12, 0, 0));
+        VeloCenter.Core.Activities.ActivitySummary[] activities =
+        [
+            new(
+                Guid.NewGuid(),
+                VeloCenter.Core.Activities.ActivitySource.Strava,
+                "Past year ride",
+                new DateTimeOffset(pastYear, 6, 1, 12, 0, 0, localOffset),
+                60,
+                TimeSpan.FromMinutes(120)),
+        ];
+
+        var viewModel = new VeloCenter.App.ViewModels.ProgressViewModel(activities);
+        var completedYearSeries = Assert.Single(viewModel.AnnualSeries, series => series.Year == pastYear);
+
+        Assert.False(completedYearSeries.ShowEndMarker);
+    }
+
+    [Fact]
+    public void WorkoutsViewModel_PaginatesActivitiesByTen()
+    {
+        var offset = TimeZoneInfo.Local.GetUtcOffset(new DateTime(2026, 4, 1, 12, 0, 0));
+        var activities = Enumerable.Range(1, 23)
+            .Select(index => new VeloCenter.Core.Activities.ActivitySummary(
+                Guid.NewGuid(),
+                VeloCenter.Core.Activities.ActivitySource.Strava,
+                $"Ride {index}",
+                new DateTimeOffset(2026, 4, 24, 12, 0, 0, offset).AddDays(-index),
+                40 + index,
+                TimeSpan.FromMinutes(90 + index)))
+            .ToArray();
+
+        var viewModel = new VeloCenter.App.ViewModels.WorkoutsViewModel(activities, activities.Length, "Wszystkie");
+
+        Assert.Equal(10, viewModel.RideLibrary.Count);
+        Assert.True(viewModel.HasPagination);
+        Assert.Equal("Strona 1 z 3  •  1-10 z 23", viewModel.PaginationLabel);
+
+        ExecuteCommand(viewModel, "NextPageCommand");
+
+        Assert.Equal(10, viewModel.RideLibrary.Count);
+        Assert.Equal("Strona 2 z 3  •  11-20 z 23", viewModel.PaginationLabel);
+
+        ExecuteCommand(viewModel, "NextPageCommand");
+
+        Assert.Equal(3, viewModel.RideLibrary.Count);
+        Assert.Equal("Strona 3 z 3  •  21-23 z 23", viewModel.PaginationLabel);
+        Assert.False(viewModel.CanGoNextPage);
+    }
+
+    [Fact]
+    public void LocalActivityRangePreferencesStore_SavesAndLoadsSelection()
+    {
+        var preferencesDirectory = Path.Combine(Path.GetTempPath(), "velo-center-tests", Guid.NewGuid().ToString("N"));
+        var preferencesPath = Path.Combine(preferencesDirectory, "ui-preferences.json");
+
+        try
+        {
+            var store = new VeloCenter.App.Services.LocalActivityRangePreferencesStore(preferencesPath);
+            var selection = new VeloCenter.App.Models.ActivityRangeSelection(
+                VeloCenter.App.Models.ActivityRangePreset.Custom,
+                new DateTime(2026, 3, 1),
+                new DateTime(2026, 3, 31));
+
+            store.Save(selection);
+            var loadedSelection = store.Load();
+
+            Assert.Equal(VeloCenter.App.Models.ActivityRangePreset.Custom, loadedSelection.Preset);
+            Assert.Equal(new DateTime(2026, 3, 1), loadedSelection.StartDate);
+            Assert.Equal(new DateTime(2026, 3, 31), loadedSelection.EndDate);
+        }
+        finally
+        {
+            if (Directory.Exists(preferencesDirectory))
+            {
+                Directory.Delete(preferencesDirectory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void MainWindowViewModel_RestoresSavedRangeSelectionForWorkouts()
+    {
+        var store = new VeloCenter.App.Services.InMemoryActivityRangePreferencesStore();
+        var futureYear = DateTime.Today.Year + 1;
+        var startDate = new DateTime(futureYear, 1, 1);
+        var endDate = new DateTime(futureYear, 1, 31);
+
+        store.Save(new VeloCenter.App.Models.ActivityRangeSelection(
+            VeloCenter.App.Models.ActivityRangePreset.Custom,
+            startDate,
+            endDate));
+
+        var viewModel = new VeloCenter.App.ViewModels.MainWindowViewModel(
+            new VeloCenter.Infrastructure.Activities.InMemoryActivityRepository(),
+            new VeloCenter.Infrastructure.Activities.InMemoryActivityImportService(),
+            new VeloCenter.Infrastructure.Integrations.Strava.DisabledStravaIntegrationService(),
+            new VeloCenter.Infrastructure.Maintenance.NoOpApplicationResetService(),
+            store);
+        var workoutsNavigationItem = Assert.Single(viewModel.NavigationItems, item => item.Title == "Treningi");
+
+        ExecuteCommand(viewModel, "SelectSectionCommand", workoutsNavigationItem);
+
+        var workoutsViewModel = Assert.IsType<VeloCenter.App.ViewModels.WorkoutsViewModel>(viewModel.CurrentSectionViewModel);
+
+        Assert.Equal($"{startDate:dd.MM.yyyy} - {endDate:dd.MM.yyyy}", viewModel.CurrentRangeLabel);
+        Assert.True(workoutsViewModel.HasNoActivities);
+        Assert.Equal("Brak treningow w wybranym zakresie", workoutsViewModel.EmptyLibraryTitle);
+    }
+
+    private static void ExecuteCommand(object target, string commandPropertyName, object? parameter = null)
+    {
+        var command = target.GetType().GetProperty(commandPropertyName)!.GetValue(target)!;
+        var parameterType = parameter?.GetType();
+        var executeMethod = command
+            .GetType()
+            .GetMethods()
+            .Where(method => method.Name == "Execute" && method.GetParameters().Length == 1)
+            .OrderBy(method =>
+            {
+                var methodParameterType = method.GetParameters()[0].ParameterType;
+
+                if (parameterType is null)
+                {
+                    return methodParameterType == typeof(object) ? 0 : 1;
+                }
+
+                if (methodParameterType == parameterType)
+                {
+                    return 0;
+                }
+
+                return methodParameterType.IsAssignableFrom(parameterType) ? 1 : 2;
+            })
+            .First();
+
+        executeMethod.Invoke(command, [parameter]);
+    }
 }

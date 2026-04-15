@@ -1,5 +1,9 @@
 ﻿namespace VeloCenter.App.ViewModels;
 
+using VeloCenter.App.Models;
+using VeloCenter.App.Services;
+
+
 public sealed class MainWindowViewModel : ViewModelBase
 {
     private enum PipelineTaskKind
@@ -14,6 +18,7 @@ public sealed class MainWindowViewModel : ViewModelBase
     private readonly VeloCenter.Core.Activities.IActivityImportService _activityImportService;
     private readonly VeloCenter.Core.Integrations.IStravaIntegrationService _stravaIntegrationService;
     private readonly VeloCenter.Core.Maintenance.IApplicationResetService _applicationResetService;
+    private readonly IActivityRangePreferencesStore _activityRangePreferencesStore;
     private OverviewViewModel _overviewViewModel = null!;
     private WorkoutsViewModel _workoutsViewModel = null!;
     private ProgressViewModel _progressViewModel = null!;
@@ -21,12 +26,21 @@ public sealed class MainWindowViewModel : ViewModelBase
     private readonly SettingsViewModel _settingsViewModel;
     private readonly NavigationItemViewModel _overviewNavigationItem;
     private readonly NavigationItemViewModel _importNavigationItem;
+    private readonly ActivityRangeOptionViewModel _last30DaysRangeOption;
+    private readonly ActivityRangeOptionViewModel _thisMonthRangeOption;
+    private readonly ActivityRangeOptionViewModel _thisYearRangeOption;
+    private readonly ActivityRangeOptionViewModel _customRangeOption;
+    private readonly ActivityRangeOptionViewModel _allRangeOption;
     private readonly Avalonia.Threading.DispatcherTimer _taskStripeTimer;
     private readonly System.Diagnostics.Stopwatch _taskStripeStopwatch;
+    private IReadOnlyList<VeloCenter.Core.Activities.ActivitySummary> _allActivities = [];
+    private ActivityRangeSelection _currentRangeSelection = ActivityRangeSelection.Default;
+    private ActivityRangeOptionViewModel _selectedRangeOption = null!;
     private bool _hasActivities;
 
     private bool _isSidebarExpanded;
     private bool _isSidebarContentExpanded;
+    private string _currentSectionKey = string.Empty;
     private string _currentSectionTitle = string.Empty;
     private string _currentSectionDescription = string.Empty;
     private ViewModelBase _currentSectionViewModel = null!;
@@ -52,7 +66,8 @@ public sealed class MainWindowViewModel : ViewModelBase
             new VeloCenter.Infrastructure.Activities.InMemoryActivityRepository(),
             new VeloCenter.Infrastructure.Activities.InMemoryActivityImportService(),
             new VeloCenter.Infrastructure.Integrations.Strava.DisabledStravaIntegrationService(),
-            new VeloCenter.Infrastructure.Maintenance.NoOpApplicationResetService())
+            new VeloCenter.Infrastructure.Maintenance.NoOpApplicationResetService(),
+            new InMemoryActivityRangePreferencesStore())
     {
     }
 
@@ -60,14 +75,21 @@ public sealed class MainWindowViewModel : ViewModelBase
         VeloCenter.Core.Activities.IActivityRepository activityRepository,
         VeloCenter.Core.Activities.IActivityImportService activityImportService,
         VeloCenter.Core.Integrations.IStravaIntegrationService stravaIntegrationService,
-        VeloCenter.Core.Maintenance.IApplicationResetService applicationResetService)
+        VeloCenter.Core.Maintenance.IApplicationResetService applicationResetService,
+        IActivityRangePreferencesStore activityRangePreferencesStore)
     {
         _activityRepository = activityRepository;
         _activityImportService = activityImportService;
         _stravaIntegrationService = stravaIntegrationService;
         _applicationResetService = applicationResetService;
+        _activityRangePreferencesStore = activityRangePreferencesStore;
         _importViewModel = new ImportViewModel();
         _settingsViewModel = new SettingsViewModel();
+        _last30DaysRangeOption = new ActivityRangeOptionViewModel(ActivityRangePreset.Last30Days, "Ostatnie 30 dni");
+        _thisMonthRangeOption = new ActivityRangeOptionViewModel(ActivityRangePreset.ThisMonth, "Ten miesiac");
+        _thisYearRangeOption = new ActivityRangeOptionViewModel(ActivityRangePreset.ThisYear, "Ten rok");
+        _customRangeOption = new ActivityRangeOptionViewModel(ActivityRangePreset.Custom, "Zakres od-do");
+        _allRangeOption = new ActivityRangeOptionViewModel(ActivityRangePreset.All, "Wszystkie");
 
         _overviewNavigationItem = new NavigationItemViewModel(
             "overview",
@@ -77,12 +99,12 @@ public sealed class MainWindowViewModel : ViewModelBase
         var workoutsNavigationItem = new NavigationItemViewModel(
             "workouts",
             "Treningi",
-            "Biblioteka przejazdow, filtry i podglad danych z aktywnosci.",
+            "Biblioteka przejazdow i podglad danych z aktywnosci.",
             "M4,16 C7,11 10,11 13,14 C15,16 17,16 20,8 M5.5,16 A1.5,1.5 0 1 0 5.6,16 M13,14 A1.5,1.5 0 1 0 13.1,14 M20,8 A1.5,1.5 0 1 0 20.1,8");
         var progressNavigationItem = new NavigationItemViewModel(
             "progress",
-            "Postep",
-            "Trendy tygodniowe, sygnaly i kolejne metryki rozwojowe.",
+            "Podsumowanie",
+            "Roczne porownanie kilometrow i przebiegu sezonu rok do roku.",
             "M5,17 L10,12 L14,14 L19,7 M15,7 H19 V11");
         _importNavigationItem = new NavigationItemViewModel(
             "import",
@@ -103,6 +125,16 @@ public sealed class MainWindowViewModel : ViewModelBase
             _importNavigationItem,
             settingsNavigationItem,
         ];
+
+        RangeOptions =
+        [
+            _last30DaysRangeOption,
+            _thisMonthRangeOption,
+            _thisYearRangeOption,
+            _customRangeOption,
+            _allRangeOption,
+        ];
+        ApplyRangeSelection(_activityRangePreferencesStore.Load(), persist: false);
 
         SelectSectionCommand = new CommunityToolkit.Mvvm.Input.RelayCommand<NavigationItemViewModel?>(SelectSection);
         SyncCommand = new CommunityToolkit.Mvvm.Input.RelayCommand(() => _ = RunToolbarSyncAsync());
@@ -152,7 +184,9 @@ public sealed class MainWindowViewModel : ViewModelBase
 
     public string AppMetaLabel => $"{AppVersionLabel}  •  {AppAuthorLabel}";
 
-    public string CurrentRangeLabel { get; } = "30 dni";
+    public string CurrentRangeLabel => SelectedRangeOption.Label;
+
+    public bool ShowTopBarRangeSelector => string.Equals(_currentSectionKey, "workouts", StringComparison.Ordinal);
 
     public bool IsSidebarExpanded
     {
@@ -183,7 +217,21 @@ public sealed class MainWindowViewModel : ViewModelBase
 
     public double SidebarWidth => IsSidebarExpanded ? 264 : 80;
 
-    public System.Collections.Generic.IReadOnlyList<NavigationItemViewModel> NavigationItems { get; }
+    public IReadOnlyList<NavigationItemViewModel> NavigationItems { get; }
+
+    public IReadOnlyList<ActivityRangeOptionViewModel> RangeOptions { get; }
+
+    public ActivityRangeOptionViewModel SelectedRangeOption
+    {
+        get => _selectedRangeOption;
+        set
+        {
+            if (SetProperty(ref _selectedRangeOption, value))
+            {
+                OnPropertyChanged(nameof(CurrentRangeLabel));
+            }
+        }
+    }
 
     public string CurrentSectionTitle
     {
@@ -303,6 +351,42 @@ public sealed class MainWindowViewModel : ViewModelBase
     public CommunityToolkit.Mvvm.Input.IRelayCommand<NavigationItemViewModel?> SelectSectionCommand { get; }
 
     public CommunityToolkit.Mvvm.Input.IRelayCommand SyncCommand { get; }
+
+    public void ApplyPresetRange(ActivityRangePreset preset)
+    {
+        if (preset is ActivityRangePreset.Custom)
+        {
+            return;
+        }
+
+        ApplyRangeSelection(new ActivityRangeSelection(preset), persist: true);
+        ReloadActivitySections();
+    }
+
+    public void ApplyCustomRange(DateTime startDate, DateTime endDate)
+    {
+        ApplyRangeSelection(new ActivityRangeSelection(ActivityRangePreset.Custom, startDate.Date, endDate.Date), persist: true);
+        ReloadActivitySections();
+    }
+
+    public void RestoreCurrentRangeSelection()
+    {
+        UpdateRangeOptionLabels();
+        SelectedRangeOption = GetRangeOption(_currentRangeSelection.Preset);
+    }
+
+    public (DateTime StartDate, DateTime EndDate) GetCustomRangeDraft()
+    {
+        if (_currentRangeSelection.Preset is ActivityRangePreset.Custom &&
+            _currentRangeSelection.StartDate is { } startDate &&
+            _currentRangeSelection.EndDate is { } endDate)
+        {
+            return (startDate, endDate);
+        }
+
+        var today = DateTime.Today;
+        return (today.AddDays(-29), today);
+    }
 
     public async System.Threading.Tasks.Task StartFileImportAsync(string filePath)
     {
@@ -488,6 +572,7 @@ public sealed class MainWindowViewModel : ViewModelBase
             await AdvanceTaskStepAsync(PipelineTaskKind.Maintenance, "Zamykanie lokalnych polaczen i przygotowanie resetu.", 36, 130);
             _applicationResetService.ResetAllData();
             _importViewModel.ResetViewState();
+            ApplyRangeSelection(ActivityRangeSelection.Default, persist: false);
             ReloadActivitySections();
             RefreshStravaState();
             SelectSection(_importNavigationItem);
@@ -623,6 +708,8 @@ public sealed class MainWindowViewModel : ViewModelBase
             navigationItem.IsSelected = object.ReferenceEquals(navigationItem, item);
         }
 
+        _currentSectionKey = item.Key;
+        OnPropertyChanged(nameof(ShowTopBarRangeSelector));
         CurrentSectionTitle = item.Title;
         CurrentSectionDescription = item.Description;
         CurrentSectionViewModel = ResolveSection(item.Key);
@@ -868,9 +955,10 @@ public sealed class MainWindowViewModel : ViewModelBase
     {
         var activities = _activityRepository.GetRecentActivities();
 
+        _allActivities = activities;
         _hasActivities = activities.Count > 0;
         _overviewViewModel = new OverviewViewModel(VeloCenter.Core.Activities.TrainingOverview.FromActivities(activities), activities);
-        _workoutsViewModel = new WorkoutsViewModel(activities);
+        _workoutsViewModel = new WorkoutsViewModel(GetVisibleWorkoutsActivities(), activities.Count, CurrentRangeLabel);
         _progressViewModel = new ProgressViewModel(activities);
 
         var selectedNavigationItem = NavigationItems.FirstOrDefault(item => item.IsSelected);
@@ -880,6 +968,98 @@ public sealed class MainWindowViewModel : ViewModelBase
             CurrentSectionViewModel = ResolveSection(selectedNavigationItem.Key);
         }
     }
+
+    private IReadOnlyList<VeloCenter.Core.Activities.ActivitySummary> GetVisibleWorkoutsActivities()
+    {
+        if (_currentRangeSelection.Preset is ActivityRangePreset.All)
+        {
+            return _allActivities;
+        }
+
+        var (startDate, endDate) = GetCurrentRangeBounds();
+
+        return
+        [
+            .. _allActivities.Where(activity =>
+            {
+                var activityDate = activity.StartTime.ToLocalTime().Date;
+                return activityDate >= startDate && activityDate <= endDate;
+            }),
+        ];
+    }
+
+    private (DateTime StartDate, DateTime EndDate) GetCurrentRangeBounds()
+    {
+        var today = DateTime.Today;
+
+        return _currentRangeSelection.Preset switch
+        {
+            ActivityRangePreset.Last30Days => (today.AddDays(-29), today),
+            ActivityRangePreset.ThisMonth => (new DateTime(today.Year, today.Month, 1), today),
+            ActivityRangePreset.ThisYear => (new DateTime(today.Year, 1, 1), today),
+            ActivityRangePreset.Custom when _currentRangeSelection.StartDate is { } startDate &&
+                _currentRangeSelection.EndDate is { } endDate => (startDate.Date, endDate.Date),
+            _ => (today.AddDays(-29), today),
+        };
+    }
+
+    private void ApplyRangeSelection(ActivityRangeSelection selection, bool persist)
+    {
+        _currentRangeSelection = NormalizeRangeSelection(selection);
+        UpdateRangeOptionLabels();
+        SelectedRangeOption = GetRangeOption(_currentRangeSelection.Preset);
+
+        if (persist)
+        {
+            _activityRangePreferencesStore.Save(_currentRangeSelection);
+        }
+    }
+
+    private static ActivityRangeSelection NormalizeRangeSelection(ActivityRangeSelection selection)
+    {
+        if (selection.Preset is not ActivityRangePreset.Custom)
+        {
+            return new ActivityRangeSelection(selection.Preset);
+        }
+
+        if (selection.StartDate is null || selection.EndDate is null)
+        {
+            return ActivityRangeSelection.Default;
+        }
+
+        var startDate = selection.StartDate.Value.Date;
+        var endDate = selection.EndDate.Value.Date;
+
+        if (endDate < startDate)
+        {
+            (startDate, endDate) = (endDate, startDate);
+        }
+
+        return new ActivityRangeSelection(ActivityRangePreset.Custom, startDate, endDate);
+    }
+
+    private void UpdateRangeOptionLabels()
+    {
+        _last30DaysRangeOption.Label = "Ostatnie 30 dni";
+        _thisMonthRangeOption.Label = "Ten miesiac";
+        _thisYearRangeOption.Label = "Ten rok";
+        _allRangeOption.Label = "Wszystkie";
+        _customRangeOption.Label = _currentRangeSelection.Preset is ActivityRangePreset.Custom &&
+            _currentRangeSelection.StartDate is { } startDate &&
+            _currentRangeSelection.EndDate is { } endDate
+            ? $"{startDate:dd.MM.yyyy} - {endDate:dd.MM.yyyy}"
+            : "Zakres od-do";
+    }
+
+    private ActivityRangeOptionViewModel GetRangeOption(ActivityRangePreset preset) => preset switch
+    {
+        ActivityRangePreset.Last30Days => _last30DaysRangeOption,
+        ActivityRangePreset.ThisMonth => _thisMonthRangeOption,
+        ActivityRangePreset.ThisYear => _thisYearRangeOption,
+        ActivityRangePreset.Custom => _customRangeOption,
+        ActivityRangePreset.All => _allRangeOption,
+        _ => _last30DaysRangeOption,
+    };
 
     private void RefreshStravaState()
     {

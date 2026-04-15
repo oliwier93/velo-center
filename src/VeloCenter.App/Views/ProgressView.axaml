@@ -1,143 +1,138 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:VeloCenter.App.Controls"
              xmlns:vm="using:VeloCenter.App.ViewModels"
              x:Class="VeloCenter.App.Views.ProgressView"
              x:DataType="vm:ProgressViewModel">
+    <UserControl.Styles>
+        <Style Selector="Button.legend-toggle">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="8,6" />
+            <Setter Property="MinWidth" Value="0" />
+        </Style>
+    </UserControl.Styles>
+
     <StackPanel Spacing="24">
-        <ItemsControl ItemsSource="{Binding Highlights}">
-            <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <StackPanel Orientation="Horizontal" />
-                </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
+        <Border Padding="24"
+                CornerRadius="24"
+                Background="{DynamicResource PanelStrongBackgroundBrush}"
+                BorderBrush="{DynamicResource PanelStrokeBrush}"
+                BorderThickness="1"
+                IsVisible="{Binding HasNoActivities}">
+            <StackPanel Spacing="10">
+                <TextBlock FontSize="26"
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           Text="Porownanie roczne pojawi sie po pierwszym imporcie" />
+                <TextBlock FontSize="14"
+                           Foreground="{DynamicResource TextMutedBrush}"
+                           Text="{Binding ChartSummary}"
+                           TextWrapping="Wrap" />
+            </StackPanel>
+        </Border>
 
-            <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:MetricTileViewModel">
-                    <Border Width="240"
-                            Margin="0,0,16,0"
-                            Padding="18"
-                            CornerRadius="22"
-                            Background="{DynamicResource PanelStrongBackgroundBrush}"
-                            BorderBrush="{DynamicResource PanelStrokeBrush}"
-                            BorderThickness="1">
-                        <StackPanel Spacing="8">
-                            <TextBlock FontSize="13"
-                                       Foreground="{DynamicResource TextSubtleBrush}"
-                                       Text="{Binding Label}" />
-                            <TextBlock FontSize="28"
-                                       FontWeight="Bold"
-                                       Foreground="{DynamicResource TextPrimaryBrush}"
-                                       Text="{Binding Value}" />
-                            <TextBlock FontSize="13"
-                                       Foreground="{DynamicResource TextMutedBrush}"
-                                       Text="{Binding Detail}"
-                                       TextWrapping="Wrap" />
-                        </StackPanel>
-                    </Border>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
+        <Border Padding="22"
+                CornerRadius="24"
+                Background="{DynamicResource PanelStrongBackgroundBrush}"
+                BorderBrush="{DynamicResource PanelStrokeBrush}"
+                BorderThickness="1"
+                IsVisible="{Binding HasActivities}">
+            <StackPanel Spacing="10">
+                <TextBlock FontSize="13"
+                           Foreground="{DynamicResource TextMutedBrush}"
+                           Text="{Binding ChartSummary}"
+                           TextWrapping="Wrap" />
 
-        <Grid ColumnDefinitions="*,*"
-              ColumnSpacing="24">
-            <Border Padding="22"
-                    CornerRadius="24"
-                    Background="{DynamicResource PanelStrongBackgroundBrush}"
-                    BorderBrush="{DynamicResource PanelStrokeBrush}"
-                    BorderThickness="1">
-                <StackPanel Spacing="16">
-                    <TextBlock FontSize="24"
-                               FontWeight="Bold"
-                               Foreground="{DynamicResource TextPrimaryBrush}"
-                               Text="Sygnaly" />
+                <Grid HorizontalAlignment="Stretch">
+                    <controls:AnnualProgressChart Height="{Binding ChartContentHeight}"
+                                                  HorizontalAlignment="Stretch"
+                                                  AnnualSeries="{Binding VisibleAnnualSeries}"
+                                                  DistanceTicks="{Binding DistanceTicks}"
+                                                  MonthLabels="{Binding MonthLabels}"
+                                                  PlotWidthReference="{Binding PlotWidth}"
+                                                  PlotHeightReference="{Binding PlotHeight}"
+                                                  AxisWidthReference="{Binding AxisWidth}"
+                                                  MonthAxisHeightReference="{Binding MonthAxisHeight}" />
+                </Grid>
 
-                    <Border Padding="18"
-                            CornerRadius="18"
-                            Background="{DynamicResource PanelBackgroundBrush}"
-                            BorderBrush="{DynamicResource PanelStrokeBrush}"
-                            BorderThickness="1"
-                            IsVisible="{Binding HasNoActivities}">
-                        <StackPanel Spacing="6">
-                            <TextBlock FontSize="18"
-                                       FontWeight="SemiBold"
-                                       Foreground="{DynamicResource TextPrimaryBrush}"
-                                       Text="Najpierw potrzebujemy danych" />
-                            <TextBlock FontSize="13"
-                                       Foreground="{DynamicResource TextMutedBrush}"
-                                       Text="Widok postepu jest gotowy na pusta baze. Po imporcie pierwszego pliku pojawia sie tu realne sygnaly i statystyki."
-                                       TextWrapping="Wrap" />
-                        </StackPanel>
-                    </Border>
+                <ItemsControl ItemsSource="{Binding AnnualSeries}"
+                              HorizontalAlignment="Center"
+                              Margin="0,0,0,0">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal"
+                                       HorizontalAlignment="Center" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
 
-                    <ItemsControl ItemsSource="{Binding Signals}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="vm:InfoCardViewModel">
-                                <Border Margin="0,0,0,12"
-                                        Padding="16"
-                                        CornerRadius="18"
-                                        Background="{DynamicResource PanelBackgroundBrush}"
-                                        BorderBrush="{DynamicResource PanelStrokeBrush}"
-                                        BorderThickness="1">
-                                    <StackPanel Spacing="6">
-                                        <TextBlock FontSize="12"
-                                                   Foreground="{DynamicResource TextSubtleBrush}"
-                                                   Text="{Binding Title}" />
-                                        <TextBlock FontSize="18"
+                    <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ProgressYearSeriesViewModel">
+                                <Button Classes="legend-toggle"
+                                        Margin="0,0,14,4"
+                                        Command="{Binding ToggleVisibilityCommand}"
+                                        Opacity="{Binding LegendOpacity}">
+                                    <Grid ColumnDefinitions="Auto,*"
+                                          ColumnSpacing="10">
+                                    <Border Width="12"
+                                            Height="12"
+                                            Margin="0,4,0,0"
+                                            CornerRadius="6"
+                                            Background="{Binding Stroke}" />
+
+                                    <StackPanel Grid.Column="1"
+                                                Spacing="2">
+                                        <TextBlock FontSize="16"
                                                    FontWeight="SemiBold"
                                                    Foreground="{DynamicResource TextPrimaryBrush}"
-                                                   Text="{Binding Value}" />
-                                        <TextBlock FontSize="13"
+                                                   Text="{Binding YearLabel}" />
+                                        <TextBlock FontSize="12"
                                                    Foreground="{DynamicResource TextMutedBrush}"
-                                                   Text="{Binding Description}"
-                                                   TextWrapping="Wrap" />
+                                                   Text="{Binding TotalDistanceLabel}" />
                                     </StackPanel>
-                                </Border>
+                                </Grid>
+                            </Button>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                </StackPanel>
-            </Border>
 
-            <Border Grid.Column="1"
-                    Padding="22"
-                    CornerRadius="24"
-                    Background="{DynamicResource PanelStrongBackgroundBrush}"
-                    BorderBrush="{DynamicResource PanelStrokeBrush}"
-                    BorderThickness="1">
-                <StackPanel Spacing="16">
-                    <TextBlock FontSize="24"
-                               FontWeight="Bold"
-                               Foreground="{DynamicResource TextPrimaryBrush}"
-                               Text="Nastepne unlocki" />
+                <ItemsControl ItemsSource="{Binding Highlights}"
+                              HorizontalAlignment="Center">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal"
+                                       HorizontalAlignment="Center" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
 
-                    <ItemsControl ItemsSource="{Binding FocusAreas}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="vm:InfoCardViewModel">
-                                <Border Margin="0,0,0,12"
-                                        Padding="16"
-                                        CornerRadius="18"
-                                        Background="{DynamicResource PanelBackgroundBrush}"
-                                        BorderBrush="{DynamicResource PanelStrokeBrush}"
-                                        BorderThickness="1">
-                                    <StackPanel Spacing="6">
-                                        <TextBlock FontSize="12"
-                                                   Foreground="{DynamicResource TextSubtleBrush}"
-                                                   Text="{Binding Title}" />
-                                        <TextBlock FontSize="18"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="{DynamicResource TextPrimaryBrush}"
-                                                   Text="{Binding Value}" />
-                                        <TextBlock FontSize="13"
-                                                   Foreground="{DynamicResource TextMutedBrush}"
-                                                   Text="{Binding Description}"
-                                                   TextWrapping="Wrap" />
-                                    </StackPanel>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </StackPanel>
-            </Border>
-        </Grid>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:MetricTileViewModel">
+                            <Border Width="240"
+                                    Margin="0,4,14,0"
+                                    Padding="18"
+                                    CornerRadius="22"
+                                    Background="{DynamicResource PanelBackgroundBrush}"
+                                    BorderBrush="{DynamicResource PanelStrokeBrush}"
+                                    BorderThickness="1">
+                                <StackPanel Spacing="8">
+                                    <TextBlock FontSize="13"
+                                               Foreground="{DynamicResource TextSubtleBrush}"
+                                               Text="{Binding Label}" />
+                                    <TextBlock FontSize="28"
+                                               FontWeight="Bold"
+                                               Foreground="{DynamicResource TextPrimaryBrush}"
+                                               Text="{Binding Value}" />
+                                    <TextBlock FontSize="13"
+                                               Foreground="{DynamicResource TextMutedBrush}"
+                                               Text="{Binding Detail}"
+                                               TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </Border>
     </StackPanel>
 </UserControl>
