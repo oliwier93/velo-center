@@ -21,6 +21,9 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+
       - name: Restore
         run: dotnet restore .\VeloCenter.sln
 
@@ -45,6 +48,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           prerelease: true
+          overwrite_files: true
           body_path: ${{ steps.notes.outputs.body_path }}
           files: |
             .artifacts/release/VeloCenter-*.zip

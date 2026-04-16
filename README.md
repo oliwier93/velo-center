@@ -47,6 +47,8 @@ powershell -ExecutionPolicy Bypass -File .\scripts\Build-WindowsRelease.ps1
 
 The script creates a self-contained `win-x64` publish, a portable ZIP, and a Windows installer executable in `.artifacts\release`.
 
+The installer is built with Inno Setup, so install `JRSoftware.InnoSetup` on Windows before running the packaging script locally.
+
 ## Next milestones
 
 - Add SQLite and EF Core

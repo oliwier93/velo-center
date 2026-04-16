@@ -27,26 +27,43 @@ $version = if ([string]::IsNullOrWhiteSpace($versionSuffix)) {
 $resolvedProjectPath = Resolve-Path (Join-Path $repoRootPath $ProjectPath)
 $artifactsRoot = Join-Path $repoRootPath ".artifacts\\release"
 $publishDir = Join-Path $artifactsRoot "publish\\$RuntimeIdentifier"
-$packageRoot = Join-Path $artifactsRoot "package"
-$installerInputDir = Join-Path $packageRoot "installer-input"
 $zipPath = Join-Path $artifactsRoot "VeloCenter-$version-$RuntimeIdentifier.zip"
-$payloadArchivePath = Join-Path $installerInputDir "VeloCenter-Payload.zip"
 $installerPath = Join-Path $artifactsRoot "VeloCenter-$version-$RuntimeIdentifier-setup.exe"
-$sedPath = Join-Path $packageRoot "VeloCenter-$version.sed"
 $artifactsBuildRoot = Join-Path $repoRootPath ".artifacts\\build\\"
+$issPath = Resolve-Path (Join-Path $repoRootPath "packaging\\windows\\VeloCenter.iss")
+$iconPath = Resolve-Path (Join-Path $repoRootPath "src\\VeloCenter.App\\Assets\\avalonia-logo.ico")
+$isccCommand = Get-Command iscc.exe, iscc -ErrorAction SilentlyContinue | Select-Object -First 1
 
-New-Item -ItemType Directory -Force -Path $artifactsRoot, $packageRoot | Out-Null
+if ($null -eq $isccCommand) {
+    $commonIsccPaths = @(
+        "C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
+        "C:\Program Files\Inno Setup 6\ISCC.exe",
+        (Join-Path $env:LOCALAPPDATA "Programs\Inno Setup 6\ISCC.exe")
+    )
+
+    foreach ($candidatePath in $commonIsccPaths) {
+        if (Test-Path -LiteralPath $candidatePath) {
+            $isccCommand = [pscustomobject]@{ Source = $candidatePath }
+            break
+        }
+    }
+}
+
+if ($null -eq $isccCommand) {
+    throw "Inno Setup Compiler (iscc) was not found. Install Inno Setup before building the Windows installer."
+}
+
+New-Item -ItemType Directory -Force -Path $artifactsRoot | Out-Null
 if (Test-Path -LiteralPath $publishDir) {
     Remove-Item -LiteralPath $publishDir -Recurse -Force
 }
-if (Test-Path -LiteralPath $installerInputDir) {
-    Remove-Item -LiteralPath $installerInputDir -Recurse -Force
+
+foreach ($existingArtifact in (Get-ChildItem -LiteralPath $artifactsRoot -File -Filter "VeloCenter-*.zip" -ErrorAction SilentlyContinue)) {
+    Remove-Item -LiteralPath $existingArtifact.FullName -Force
 }
-if (Test-Path -LiteralPath $zipPath) {
-    Remove-Item -LiteralPath $zipPath -Force
-}
-if (Test-Path -LiteralPath $installerPath) {
-    Remove-Item -LiteralPath $installerPath -Force
+
+foreach ($existingInstaller in (Get-ChildItem -LiteralPath $artifactsRoot -File -Filter "VeloCenter-*-setup.exe" -ErrorAction SilentlyContinue)) {
+    Remove-Item -LiteralPath $existingInstaller.FullName -Force
 }
 
 $publishArgs = @(
@@ -71,83 +88,19 @@ if ($LASTEXITCODE -ne 0) {
     throw "dotnet publish failed with exit code $LASTEXITCODE."
 }
 
-New-Item -ItemType Directory -Force -Path $installerInputDir | Out-Null
-Copy-Item -LiteralPath (Join-Path $repoRootPath "packaging\\windows\\Install-VeloCenter.ps1") -Destination $installerInputDir -Force
-Copy-Item -LiteralPath (Join-Path $repoRootPath "packaging\\windows\\Install-VeloCenter.cmd") -Destination $installerInputDir -Force
-
 Compress-Archive -Path (Join-Path $publishDir "*") -DestinationPath $zipPath -Force
-Copy-Item -LiteralPath $zipPath -Destination $payloadArchivePath -Force
 
-$files = Get-ChildItem -LiteralPath $installerInputDir -Recurse -File | Sort-Object FullName
-$groups = $files | Group-Object DirectoryName
-$sourceFilesEntries = New-Object System.Collections.Generic.List[string]
-$sourceSections = New-Object System.Collections.Generic.List[string]
-$stringsEntries = New-Object System.Collections.Generic.List[string]
-$fileIndex = 0
-$sectionIndex = 0
-
-foreach ($group in $groups) {
-    $sectionName = "SourceFiles$sectionIndex"
-    $sourceFilesEntries.Add("$sectionName=$($group.Name)")
-    $sectionLines = New-Object System.Collections.Generic.List[string]
-    $sectionLines.Add("[$sectionName]")
-
-    foreach ($file in ($group.Group | Sort-Object Name)) {
-        $stringKey = "FILE$fileIndex"
-        $stringsEntries.Add("$stringKey=""$($file.Name)""")
-        $sectionLines.Add("%$stringKey%=")
-        $fileIndex++
-    }
-
-    $sourceSections.Add(($sectionLines -join [Environment]::NewLine))
-    $sectionIndex++
-}
-
-$sedLines = @(
-    "[Version]"
-    "Class=IEXPRESS"
-    "SEDVersion=3"
-    "[Options]"
-    "PackagePurpose=InstallApp"
-    "ShowInstallProgramWindow=0"
-    "HideExtractAnimation=1"
-    "UseLongFileName=1"
-    "InsideCompressed=0"
-    "CAB_FixedSize=0"
-    "CAB_ResvCodeSigning=0"
-    "RebootMode=N"
-    "InstallPrompt=%InstallPrompt%"
-    "DisplayLicense=%DisplayLicense%"
-    "FinishMessage=%FinishMessage%"
-    "TargetName=%TargetName%"
-    "FriendlyName=%FriendlyName%"
-    "AppLaunched=%AppLaunched%"
-    "PostInstallCmd=%PostInstallCmd%"
-    "AdminQuietInstCmd=%AdminQuietInstCmd%"
-    "UserQuietInstCmd=%UserQuietInstCmd%"
-    "SourceFiles=SourceFiles"
-    "[Strings]"
-    "InstallPrompt="
-    "DisplayLicense="
-    "FinishMessage=VeloCenter $version has been installed."
-    "TargetName=$installerPath"
-    "FriendlyName=VeloCenter $version"
-    "AppLaunched=cmd.exe /c Install-VeloCenter.cmd"
-    "PostInstallCmd=<None>"
-    "AdminQuietInstCmd=cmd.exe /c Install-VeloCenter.cmd"
-    "UserQuietInstCmd=cmd.exe /c Install-VeloCenter.cmd"
+$isccArgs = @(
+    "/DMyAppVersion=$version"
+    "/DMySourceDir=$publishDir"
+    "/DMyOutputDir=$artifactsRoot"
+    "/DMySetupIconFile=$($iconPath.Path)"
+    $issPath.Path
 )
 
-$sedLines += $stringsEntries
-$sedLines += "[SourceFiles]"
-$sedLines += $sourceFilesEntries
-$sedLines += $sourceSections
-
-Set-Content -LiteralPath $sedPath -Value $sedLines -Encoding ASCII
-
-& iexpress.exe /N $sedPath | Out-Null
+& $isccCommand.Source @isccArgs | Out-Null
 if ($LASTEXITCODE -ne 0) {
-    throw "iexpress failed with exit code $LASTEXITCODE."
+    throw "iscc failed with exit code $LASTEXITCODE."
 }
 
 [pscustomobject]@{
